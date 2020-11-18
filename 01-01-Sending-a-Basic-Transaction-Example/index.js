@@ -85,10 +85,6 @@ async function main()
 	const signature = signMessage(privateKey, signingEntries[0].message);
 	const tx = sealTransaction(skeleton, [signature]);
 
-	// One last sanity check to make sure we don't accidentally burn CKBytes.
-	if(capacityTotal - capacityRequired > ckbytesToShannons(1))
-		throw new Error(`Transaction fee too high: ${shannonsToCkbytesFormatted(capacityTotal - capacityRequired)}`);
-
 	// Print the details of the transaction to the console.
 	describeTransction(skeleton.toJS());
 	console.log("");

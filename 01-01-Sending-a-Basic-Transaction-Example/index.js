@@ -50,10 +50,10 @@ async function main()
 	// Start the Lumos Indexer and wait until it is fully synchronized.
 	const indexer = new Indexer(nodeUrl, "./indexed-data");
 	indexer.startForever();
-	await indexerReady(indexer, (indexerTip, rpcTip)=>{console.log(`Indexer Progress: ${indexerTip}/${rpcTip}`);}, 0);
+	await indexerReady(indexer, (indexerTip, rpcTip)=>console.log(`Indexer Progress: ${indexerTip}/${rpcTip}`), 0);
 
 	// Define our capacity tracking variables.
-	let capacityRequired = 0n;
+	let capacityRequired = 61n;
 	let capacityTotal = 0n;
 
 	// Create a transaction skeleton.
@@ -62,30 +62,12 @@ async function main()
 	// Add the cell dep for the lock script.
 	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep(lockScript)));
 
-	// Generate an output.
-	let output =
-	{
-		cell_output:
-		{
-			capacity: "0x" + ckbytesToShannons(1_000).toString(16),
-			lock: lockScript,
-			type: null
-		},
-		data: "0x"
-	};
-	skeleton = skeleton.update("outputs", (o)=>o.push(output));
-	capacityRequired += BigInt(output.cell_output.capacity);
-
 	// Add the input capacity cells.
 	const {inputs, inputCapacity} = await collectCapacity(indexer, lockScript, capacityRequired);
 	skeleton = skeleton.update("inputs", (i)=>i.concat(inputs));
 	capacityTotal += inputCapacity;
 
-	// Add in a placeholder witness so we can estimate the size required.
-	const witness = new Reader(core.SerializeWitnessArgs(normalizers.NormalizeWitnessArgs({lock: "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}))).serializeJson();
-	skeleton = skeleton.update("witnesses", (w)=>w.push(witness));
-
-	// Add a change cell.
+	// Add a change cell as our output.
 	if(capacityTotal - capacityRequired > ckbytesToShannons(1))
 	{
 		let output = {cell_output: {capacity: "0x"+(BigInt(capacityTotal - capacityRequired - txFee)).toString(16), lock: lockScript, type: null}, data: "0x"};
@@ -93,6 +75,10 @@ async function main()
 		capacityRequired += BigInt(output.cell_output.capacity);
 	}
 
+	// Add in a placeholder witness which we will sign below.
+	const witness = new Reader(core.SerializeWitnessArgs(normalizers.NormalizeWitnessArgs({lock: "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}))).serializeJson();
+	skeleton = skeleton.update("witnesses", (w)=>w.push(witness));
+	
 	// Sign the transaction with our private key.
 	skeleton = secp256k1Blake160.prepareSigningEntries(skeleton);
 	const signingEntries = skeleton.get("signingEntries").toArray();

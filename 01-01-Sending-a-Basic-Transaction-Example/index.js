@@ -1,14 +1,12 @@
 "use strict";
 
-const { core, values } = require("@ckb-lumos/base");
-const { ScriptValue } = values;
-const { generateAddress } = require("@ckb-lumos/helpers");
-const { locateCellDep, sealTransaction, TransactionSkeleton } = require("@ckb-lumos/helpers");
-const { CellCollector, Indexer } = require("@ckb-lumos/indexer");
-const { initializeConfig } = require("@ckb-lumos/config-manager");
-const { normalizers, Reader, RPC } = require("ckb-js-toolkit");
-const { secp256k1Blake160 } = require("@ckb-lumos/common-scripts");
-const { ckbytesToShannons, describeTransction, formattedNumber, getRandomInt, indexerReady, shannonsToCkbytesFormatted, signMessage } = require("../lib");
+const {core} = require("@ckb-lumos/base");
+const {locateCellDep, sealTransaction, TransactionSkeleton} = require("@ckb-lumos/helpers");
+const {CellCollector, Indexer} = require("@ckb-lumos/indexer");
+const {initializeConfig} = require("@ckb-lumos/config-manager");
+const {normalizers, Reader, RPC} = require("ckb-js-toolkit");
+const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
+const {ckbytesToShannons, describeTransction, formattedNumber, indexerReady, shannonsToCkbytesFormatted, signMessage} = require("../lib");
 
 const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
@@ -59,7 +57,7 @@ async function main()
 	let capacityTotal = 0n;
 
 	// Create a transaction skeleton.
-	let skeleton = TransactionSkeleton({ cellProvider: indexer });
+	let skeleton = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
 	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep(lockScript)));
@@ -75,7 +73,7 @@ async function main()
 		},
 		data: "0x"
 	};
-	skeleton = skeleton.set("outputs", skeleton.get("outputs").push(output));
+	skeleton = skeleton.update("outputs", (o)=>o.push(output));
 	capacityRequired += BigInt(output.cell_output.capacity);
 
 	// Add the input capacity cells.
@@ -90,7 +88,7 @@ async function main()
 	// Add a change cell.
 	if(capacityTotal - capacityRequired > ckbytesToShannons(1))
 	{
-		let output = { cell_output: { capacity: "0x"+(BigInt(capacityTotal - capacityRequired - txFee)).toString(16), lock: lockScript, type: null }, data: "0x"};
+		let output = {cell_output: {capacity: "0x"+(BigInt(capacityTotal - capacityRequired - txFee)).toString(16), lock: lockScript, type: null}, data: "0x"};
 		skeleton = skeleton.update("outputs", (o)=>o.push(output));
 		capacityRequired += BigInt(output.cell_output.capacity);
 	}

@@ -1,7 +1,7 @@
 "use strict";
 
 const {addressToScript, describeTransactionSimple} = require("../lib");
-const {addInput, addOutput, getLiveCell, initializeLab, sendTransaction, signTransaction} = require("../lib/lab.js");
+const {addInput, addOutput, getLiveCell, initializeLab, sendTransaction, signTransaction} = require("./lab.js");
 
 const nodeUrl = "http://127.0.0.1:8114/";
 

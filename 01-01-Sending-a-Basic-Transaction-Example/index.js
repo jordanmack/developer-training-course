@@ -24,7 +24,7 @@ async function main()
 	const input = await getLiveCell(nodeUrl, previousOutput);
 	skeleton = addInput(skeleton, input);
 
-	// Add a change cell as our output.
+	// Add an output cell.
 	let output = {cell_output: {capacity: input.cell_output.capacity - txFee, lock: addressToScript(address), type: null}, data: "0x"};
 	skeleton = addOutput(skeleton, output);
 

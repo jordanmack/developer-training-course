@@ -115,5 +115,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Nervos Lumos Framework
+# Nervos CKB Indexer Data
 indexed-data/

@@ -6,7 +6,8 @@ const {CellCollector, Indexer} = require("@ckb-lumos/indexer");
 const {initializeConfig} = require("@ckb-lumos/config-manager");
 const {normalizers, Reader, RPC} = require("ckb-js-toolkit");
 const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {ckbytesToShannons, describeTransction, formattedNumber, indexerReady, shannonsToCkbytesFormatted, signMessage} = require("../lib");
+const lib = require("../lib");
+const {indexerReady, signMessage} = require("../lib");
 const CKBRPC = require("@nervosnetwork/ckb-sdk-rpc").default;
 const _ = require("lodash");
 
@@ -30,14 +31,27 @@ function addOutput(skeleton, output)
 	return skeleton.update("outputs", (i)=>i.push(output));
 }
 
+function describeTransaction(transaction)
+{
+	const options =
+	{
+		showCellDeps: false,
+		showInputs: true,
+		showOutputs: true,
+		showWitnesses: false
+	};
+
+	return lib.describeTransaction(transaction, options);
+}
+
 async function initializeLab(nodeUrl, privateKey)
 {
 	// Initialize the Lumos configuration which is held in config.json.
 	initializeConfig();
 
 	// Start the Lumos Indexer and wait until it is fully synchronized.
-	const indexer = new Indexer(nodeUrl, "./indexed-data");
-	indexer.startForever();
+	const indexer = new Indexer(nodeUrl, "../indexed-data");
+	indexer.start();
 	await indexerReady(indexer, (indexerTip, rpcTip)=>console.log(`Indexer Progress: ${Math.floor(Number(indexerTip)/Number(rpcTip)*100)}%`), 0, 1000);
 	console.log();
 
@@ -51,7 +65,7 @@ async function initializeLab(nodeUrl, privateKey)
 	const witness = new Reader(core.SerializeWitnessArgs(normalizers.NormalizeWitnessArgs({lock: "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}))).serializeJson();
 	skeleton = skeleton.update("witnesses", (w)=>w.push(witness));
 
-	return {indexer, skeleton};
+	return {indexer, transaction: skeleton};
 }
 
 async function getLiveCell(nodeUrl, out_point)
@@ -107,6 +121,7 @@ module.exports =
 {
 	addInput,
 	addOutput,
+	describeTransaction,
 	getLiveCell,
 	initializeLab,
 	sendTransaction,

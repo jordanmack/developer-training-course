@@ -1,6 +1,6 @@
 "use strict";
 
-const {addressToScript, checkTxFee} = require("../lib");
+const {addressToScript} = require("@ckb-lumos/helpers");
 const {addInput, addOutput, describeTransaction, getLiveCell, initializeLab, sendTransaction, signTransaction} = require("./lab.js");
 
 const nodeUrl = "http://127.0.0.1:8114/";
@@ -23,7 +23,7 @@ async function main()
 	transaction = addInput(transaction, input);
 
 	// Add an output cell.
-	let output = {cell_output: {capacity: input.cell_output.capacity - txFee, lock: addressToScript(address), type: null}, data: "0x"};
+	const output = {cell_output: {capacity: input.cell_output.capacity - txFee, lock: addressToScript(address), type: null}, data: "0x"};
 	transaction = addOutput(transaction, output);
 
 	// Print the details of the transaction to the console.

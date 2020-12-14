@@ -1,6 +1,7 @@
 "use strict";
 
-const {addressToScript, ckbytesToShannons} = require("../lib");
+const {addressToScript} = require("@ckb-lumos/helpers");
+const {ckbytesToShannons} = require("../lib/index.js");
 const {addInput, addOutput, describeTransaction, getLiveCell, initializeLab, sendTransaction, signTransaction, validateLab} = require("./lab.js");
 
 const nodeUrl = "http://127.0.0.1:8114/";

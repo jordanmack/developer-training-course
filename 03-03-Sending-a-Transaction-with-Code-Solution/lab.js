@@ -30,7 +30,7 @@ async function initializeLab(nodeUrl, privateKey)
 	initializeConfig();
 
 	// Start the Lumos Indexer and wait until it is fully synchronized.
-	const indexer = new Indexer(nodeUrl, "../indexed-data");
+	const indexer = new Indexer(nodeUrl, "../indexer-data");
 	indexer.start();
 	await indexerReady(indexer, (indexerTip, rpcTip)=>console.log(`Indexer Progress: ${Math.floor(Number(indexerTip)/Number(rpcTip)*100)}%`), 0, 1000);
 	console.log();

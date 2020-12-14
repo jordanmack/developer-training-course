@@ -116,4 +116,4 @@ dist
 .pnp.*
 
 # Nervos CKB Indexer Data
-indexed-data/
+indexer-data/

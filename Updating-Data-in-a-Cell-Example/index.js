@@ -48,15 +48,20 @@ async function main()
 	const {hexString: hexString1} = await readFileToHexString(dataFile1);
 	const query = {lock: addressToScript(address1), type: null, data: hexString1};
 	const cellCollector = new CellCollector(indexer, query);
-	const cell = (await cellCollector.collect().next()).value;
-	if(cell)
+	for await (const cell of cellCollector.collect())
+	{
 		transaction = addInput(transaction, cell);
-	else
-		throw new Error("Unable to locate a cell with the expected data.");
+		break;
+	}
+	if(transaction.inputs.size === 0)
+		throw new Error("Unable to locate a Live Cell with the expected data.");
+
+	// Calculate the total capacity of all inputs.
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a Cell with a capacity large enough for the data being placed in it.
 	const {hexString: hexString2} = await readFileToHexString(dataFile2);
-	const outputCapacity1 = intToHex(hexToInt(cell.cell_output.capacity) - txFee);
+	const outputCapacity1 = intToHex(inputCapacity - txFee);
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address1), type: null}, data: hexString2};
 	transaction = addOutput(transaction, output1);
 

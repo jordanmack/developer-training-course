@@ -44,7 +44,7 @@ async function main()
 	// Initialize our lab and create a basic transaction skeleton to work with.
 	let {transaction} = await initializeLab(nodeUrl, indexer);
 
-	// Locate a single Cell with the desired data.
+	// Locate a single Live Cell with the desired data and add it as an input.
 	const {hexString: hexString1} = await readFileToHexString(dataFile1);
 	const query = {lock: addressToScript(address1), type: null, data: hexString1};
 	const cellCollector = new CellCollector(indexer, query);
@@ -59,7 +59,7 @@ async function main()
 	// Calculate the total capacity of all inputs.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
-	// Create a Cell with a capacity large enough for the data being placed in it.
+	// Create a Cell with data from the specified file.
 	const {hexString: hexString2} = await readFileToHexString(dataFile2);
 	const outputCapacity1 = intToHex(inputCapacity - txFee);
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address1), type: null}, data: hexString2};

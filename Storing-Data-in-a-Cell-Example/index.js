@@ -43,7 +43,7 @@ async function main()
 	transaction = addOutput(transaction, output2);	
 
 	// Add in the witness placeholders.
-	transaction = await addDefaultWitnessPlaceholders(transaction);
+	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	describeTransaction(transaction.toJS());

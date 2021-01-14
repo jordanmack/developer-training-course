@@ -7,7 +7,8 @@ const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
 const {sealTransaction} = require("@ckb-lumos/helpers");
 const lib = require("../lib/index.js");
 const {addDefaultWitnessPlaceholders, ckbytesToShannons, collectCapacity, getLiveCell, hexToInt, intToHex, indexerReady, sendTransaction, signMessage, waitForTransactionConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
-const {addInput, addInputs, addOutput, initializeLumosIndexer, signTransaction} = require("../lib/lab.js");
+const lab = require("../lib/lab.js");
+const {addInput, addInputs, addOutput, initializeLumosIndexer} = require("../lib/lab.js");
 
 function describeTransaction(transaction)
 {
@@ -83,7 +84,7 @@ async function setupCells(nodeUrl, indexer)
 	transaction = addOutput(transaction, change);
 
 	// Add in the witness placeholders.
-	transaction = await addDefaultWitnessPlaceholders(transaction);
+	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	// describeTransaction(transaction.toJS());
@@ -148,6 +149,14 @@ async function initializeLab(nodeUrl)
 	const transaction = await initializeLumosSkeleton(indexer);
 
 	return {indexer, transaction};
+}
+
+function signTransaction(transaction, privateKey)
+{
+	// Add in the witness placeholders.
+	transaction = addDefaultWitnessPlaceholders(transaction);
+
+	return lab.signTransaction(transaction, privateKey);
 }
 
 function validateLab(skeleton)

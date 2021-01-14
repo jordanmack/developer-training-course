@@ -1,7 +1,7 @@
 "use strict";
 
 const {addressToScript} = require("@ckb-lumos/helpers");
-const {addDefaultWitnessPlaceholders, ckbytesToShannons, collectCapacity, hexToInt, intToHex, sendTransaction, waitForTransactionConfirmation, waitForNextBlock} = require("../lib/index.js");
+const {ckbytesToShannons, collectCapacity, hexToInt, intToHex, sendTransaction, waitForTransactionConfirmation, waitForNextBlock} = require("../lib/index.js");
 const {addInput, addInputs, addOutput, describeTransaction, initializeLab, signTransaction, validateLab} = require("./lab.js");
 
 // Nervos CKB Development Blockchain URL.
@@ -40,9 +40,6 @@ async function main()
 	const outputCapacity2 = ???;
 	const output2 = ???;
 	transaction = addOutput(transaction, output2);	
-
-	// Add in the witness placeholders.
-	transaction = await addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	describeTransaction(transaction.toJS());

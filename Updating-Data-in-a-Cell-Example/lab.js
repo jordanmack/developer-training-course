@@ -109,7 +109,7 @@ async function setupCells(nodeUrl, indexer)
 	transaction = addOutput(transaction, change);
 
 	// Add in the witness placeholders.
-	transaction = await addDefaultWitnessPlaceholders(transaction);
+	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	// describeTransaction(transaction.toJS());

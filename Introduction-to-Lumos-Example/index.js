@@ -35,10 +35,8 @@ async function main()
 	const signedTx = signTransaction(transaction, privateKey);
 
 	// Send the transaction to the RPC node.
-	process.stdout.write("Transaction Sent: ");
 	const txid = await sendTransaction(nodeUrl, signedTx);
-	process.stdout.write(txid);
-	console.log("\n");
+	console.log(`Transaction Sent: ${txid}\n`);
 
 	// Wait for the next block, then begin checking if the transaction has confirmed.
 	await waitForNextBlock(nodeUrl);

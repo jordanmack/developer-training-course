@@ -65,9 +65,6 @@ async function main()
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address1), type: null}, data: hexString2};
 	transaction = addOutput(transaction, output1);
 
-	// Add in the witness placeholders.
-	transaction = addDefaultWitnessPlaceholders(transaction);
-
 	// Print the details of the transaction to the console.
 	describeTransaction(transaction.toJS());
 

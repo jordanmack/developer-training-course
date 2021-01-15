@@ -1,8 +1,10 @@
 "use strict";
 
-const {addressToScript} = require("@ckb-lumos/helpers");
-const {ckbytesToShannons, hexToInt, intToHex, sendTransaction, waitForNextBlock, waitForTransactionConfirmation} = require("../lib/index.js");
-const {addInput, addOutput, describeTransaction, getLiveCell, initializeLab, signTransaction, validateLab} = require("./lab.js");
+const {initializeConfig} = require("@ckb-lumos/config-manager");
+const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
+const {addDefaultCellDeps, addDefaultWitnessPlaceholders, getLiveCell, initializeLumosIndexer, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
+const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
+const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
 const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
@@ -16,28 +18,46 @@ const txFee = 10_000n;
 
 async function main()
 {
+	// Initialize the Lumos configuration which is held in config.json.
+	initializeConfig();
+
+	// Start the Lumos Indexer and wait until it is fully synchronized.
+	const indexer = await initializeLumosIndexer(nodeUrl);
+
+	// Create a transaction skeleton.
+	let transaction = TransactionSkeleton({cellProvider: indexer});
+
+	// Add the cell dep for the lock script.
+	transaction = addDefaultCellDeps(transaction);
+
+	// Initialize our lab.
+	await initializeLab(nodeUrl, transaction);
+
 	// Initialize our lab and create a basic transaction skeleton to work with.
-	let {transaction} = await initializeLab(nodeUrl);
+	await initializeLab(nodeUrl, indexer);
 
 	// Add the input cell to the transaction.
 	const input = await getLiveCell(nodeUrl, previousOutput);
-	transaction = addInput(transaction, input);
+	transaction = transaction.update("inputs", (i)=>i.push(input));
 
 	// Create a Cell with 1,000 CKBytes.
 	const outputCapacity1 = intToHex(ckbytesToShannons(1_000n));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address), type: null}, data: "0x"};
-	transaction = addOutput(transaction, output1);
+	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(hexToInt(input.cell_output.capacity) - hexToInt(output1.cell_output.capacity) - txFee);
 	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(address), type: null}, data: "0x"};
-	transaction = addOutput(transaction, output2);
+	transaction = transaction.update("outputs", (i)=>i.push(output2));
+
+	// Add in the witness placeholders.
+	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	describeTransaction(transaction.toJS());
 
 	// Validate the transaction against the lab requirements.
-	validateLab(transaction);
+	await validateLab(transaction);
 
 	// Sign the transaction.
 	const signedTx = signTransaction(transaction, privateKey);
@@ -46,10 +66,8 @@ async function main()
 	const txid = await sendTransaction(nodeUrl, signedTx);
 	console.log(`Transaction Sent: ${txid}\n`);
 
-	// Wait for the next block, then begin checking if the transaction has confirmed.
-	await waitForNextBlock(nodeUrl);
-	process.stdout.write("Waiting for transaction to confirm.");
-	await waitForTransactionConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {timeoutMs: 0, recheckMs: 3_000});
+	// Wait for the transaction to confirm.
+	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
 	console.log("Lab exercise completed successfully!");

@@ -1,15 +1,17 @@
 "use strict";
 
-const {addressToScript} = require("@ckb-lumos/helpers");
-const {addDefaultWitnessPlaceholders, ckbytesToShannons, collectCapacity, hexToInt, intToHex, readFileToHexString, sendTransaction, waitForTransactionConfirmation, waitForNextBlock} = require("../lib/index.js");
-const {addInputs, addOutput, describeTransaction, initializeLab, signTransaction, validateLab} = require("./lab.js");
+const {initializeConfig} = require("@ckb-lumos/config-manager");
+const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
+const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, readFileToHexString, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
+const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
+const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
 // Nervos CKB Development Blockchain URL.
 const nodeUrl = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const privateKey = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
-const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
+const address = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
 // This is the filename that contains the data we want to include in
 const dataFile = "../files/HelloNervos.txt";
@@ -19,19 +21,31 @@ const txFee = 100_000n;
 
 async function main()
 {
-	// Initialize our lab and create a basic transaction skeleton to work with.
-	let {transaction, indexer} = await initializeLab(nodeUrl);
+	// Initialize the Lumos configuration which is held in config.json.
+	initializeConfig();
+
+	// Start the Lumos Indexer and wait until it is fully synchronized.
+	const indexer = await initializeLumosIndexer(nodeUrl);
+
+	// Create a transaction skeleton.
+	let transaction = TransactionSkeleton({cellProvider: indexer});
+
+	// Add the cell dep for the lock script.
+	transaction = addDefaultCellDeps(transaction);
+
+	// Initialize our lab.
+	await initializeLab(nodeUrl, indexer);
 
 	// Create a Cell with a capacity large enough for the data being placed in it.
 	const {hexString, dataSize} = await readFileToHexString(dataFile);
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize));
-	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address1), type: null}, data: hexString};
-	transaction = addOutput(transaction, output1);
+	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address), type: null}, data: hexString};
+	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add the input cell to the transaction.
 	const capacityRequired = hexToInt(outputCapacity1) + ckbytesToShannons(61n) + txFee; // output1 + minimum for a change cell + tx fee
-	const {inputCells} = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
-	transaction = addInputs(transaction, inputCells);
+	const {inputCells} = await collectCapacity(indexer, addressToScript(address), capacityRequired);
+	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));
 
 	// Get the capacity sums of the inputs and outputs.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
@@ -39,8 +53,8 @@ async function main()
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(inputCapacity - outputCapacity - txFee);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(address1), type: null}, data: "0x"};
-	transaction = addOutput(transaction, output2);	
+	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(address), type: null}, data: "0x"};
+	transaction = transaction.update("outputs", (i)=>i.push(output2));	
 
 	// Add in the witness placeholders.
 	transaction = addDefaultWitnessPlaceholders(transaction);
@@ -58,10 +72,8 @@ async function main()
 	const txid = await sendTransaction(nodeUrl, signedTx);
 	console.log(`Transaction Sent: ${txid}\n`);
 
-	// Wait for the next block, then begin checking if the transaction has confirmed.
-	await waitForNextBlock(nodeUrl);
-	process.stdout.write("Waiting for transaction to confirm.");
-	await waitForTransactionConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {timeoutMs: 0, recheckMs: 3_000});
+	// Wait for the transaction to confirm.
+	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
 	console.log("Example completed successfully!");

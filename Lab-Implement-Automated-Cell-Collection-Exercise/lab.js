@@ -5,10 +5,8 @@ const {locateCellDep, TransactionSkeleton} = require("@ckb-lumos/helpers");
 const {CellCollector} = require("@ckb-lumos/indexer");
 const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
 const {sealTransaction} = require("@ckb-lumos/helpers");
-const lib = require("../lib/index.js");
-const {addDefaultWitnessPlaceholders, ckbytesToShannons, collectCapacity, getLiveCell, hexToInt, intToHex, indexerReady, sendTransaction, signMessage, waitForTransactionConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
-const lab = require("../lib/lab.js");
-const {addInput, addInputs, addOutput, initializeLumosIndexer} = require("../lib/lab.js");
+const {addDefaultWitnessPlaceholders, collectCapacity, describeTransaction: libDescribeTransaction, getLiveCell, indexerReady, sendTransaction, signMessage, waitForConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
+const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
 
 function describeTransaction(transaction)
 {
@@ -16,11 +14,13 @@ function describeTransaction(transaction)
 	{
 		showCellDeps: false,
 		showInputs: true,
+		showInputType: false,
 		showOutputs: true,
+		showOutputType: false,
 		showWitnesses: false
 	};
 
-	return lib.describeTransaction(transaction, options);
+	return libDescribeTransaction(transaction, options);
 }
 
 async function setupCells(nodeUrl, indexer)
@@ -61,11 +61,11 @@ async function setupCells(nodeUrl, indexer)
 	{
 		const outputCapacity = intToHex(ckbytesToShannons(61n));
 		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(address2), type: null}, data: "0x"};
-		transaction = addOutput(transaction, output);	
+		transaction = transaction.update("outputs", (i)=>i.push(output));	
 	}
 
 	// Get the sum of the outputs.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+BigInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Add input capacity cells to the transaction.
 	if(outputCapacity - recycleCapacity + ckbytesToShannons(61n) > 0) // Only add if there isn't enough recycled capacity.
@@ -76,12 +76,12 @@ async function setupCells(nodeUrl, indexer)
 	}
 
 	// Determine the capacity from all input Cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+BigInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - txFee);
 	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(address1), type: null}, data: "0x"};
-	transaction = addOutput(transaction, change);
+	transaction = transaction.update("outputs", (i)=>i.push(change));	
 
 	// Add in the witness placeholders.
 	transaction = addDefaultWitnessPlaceholders(transaction);
@@ -121,7 +121,7 @@ async function setupCells(nodeUrl, indexer)
 
 	// Wait for the transaction to confirm.
 	process.stdout.write("Now setting up Cells for lab exercise. Please wait.");
-	await waitForTransactionConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {timeoutMs: 0, recheckMs: 3_000});
+	await waitForConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {timeoutMs: 0, recheckMs: 1_000});
 	console.log("\n");
 }
 
@@ -136,27 +136,11 @@ async function initializeLumosSkeleton(indexer)
 	return skeleton;
 }
 
-async function initializeLab(nodeUrl)
+async function initializeLab(nodeUrl, indexer)
 {
-	// Create indexer.
-	const indexer = await initializeLumosIndexer(nodeUrl);
-
 	// Setup the Cells for the lab.
 	await setupCells(nodeUrl, indexer);
 	await indexerReady(indexer);
-
-	// Initialize a tx skeleton.
-	const transaction = await initializeLumosSkeleton(indexer);
-
-	return {indexer, transaction};
-}
-
-function signTransaction(transaction, privateKey)
-{
-	// Add in the witness placeholders.
-	transaction = addDefaultWitnessPlaceholders(transaction);
-
-	return lab.signTransaction(transaction, privateKey);
 }
 
 function validateLab(skeleton)
@@ -172,8 +156,8 @@ function validateLab(skeleton)
 	if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(100n))
 		throw new Error("This lab requires output 0 to have a capacity of 100 CKBytes.")
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+BigInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+BigInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	const txFee = inputCapacity - outputCapacity;
 
 	if(txFee > ckbytesToShannons(1))
@@ -185,13 +169,9 @@ function validateLab(skeleton)
 
 module.exports =
 {
-	addInput,
-	addInputs,
-	addOutput,
 	describeTransaction,
 	getLiveCell,
 	initializeLab,
 	setupCells,
-	signTransaction,
 	validateLab
 };

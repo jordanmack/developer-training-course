@@ -23,7 +23,7 @@ async function initializeLab(nodeUrl, indexer)
 	// Nothing to do in this lab.
 }
 
-function validateLab(skeleton)
+async function validateLab(skeleton)
 {
 	const tx = skeleton.toJS();
 
@@ -36,12 +36,13 @@ function validateLab(skeleton)
 	if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(1_000n))
 		throw new Error("This lab requires output 0 to have a capacity of 1,000 CKBytes.")
 
-	let outputCapacity = 0n;
-	for(let output of tx.outputs)
-		outputCapacity += hexToInt(output.cell_output.capacity);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const txFee = inputCapacity - outputCapacity;
 
-	const txFee = hexToInt(tx.inputs[0].cell_output.capacity) - outputCapacity;
-
+	if(outputCapacity > inputCapacity)
+		throw new Error("More capacity is required by the outputs than is available in the inputs.");
+	
 	if(txFee > ckbytesToShannons(1))
 		throw new Error(`The TX Fee provided is too large: ${formattedNumber(txFee)} Shannons.`);
 

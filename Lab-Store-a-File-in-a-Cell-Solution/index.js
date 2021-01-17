@@ -73,7 +73,7 @@ async function main()
 	describeTransaction(transaction.toJS());
 
 	// Validate the transaction against the lab requirements.
-	validateLab(transaction);
+	await validateLab(transaction);
 
 	// Sign the transaction.
 	const signedTx = signTransaction(transaction, privateKey);

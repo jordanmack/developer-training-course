@@ -1,8 +1,10 @@
 "use strict";
 
+const fs = require("fs");
+const util = require("util");
 const {initializeConfig} = require("@ckb-lumos/config-manager");
 const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
+const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, readFileToHexString, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
 const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
 const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
@@ -13,8 +15,18 @@ const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
+// This is the filename that contains the data we want to include in
+const dataFile = "../files/HelloNervos.txt";
+
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
+
+async function readFile(filename)
+{	
+	const readFile = util.promisify(fs.readFile);
+
+	return await readFile(filename);
+}
 
 async function main()
 {
@@ -34,9 +46,9 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 
 	// Create a Cell with a capacity large enough for the data being placed in it.
-	const hexString = "0x48656c6c6f204e6572766f7321"; // "Hello Nervos!" as a hex string.
-	const dataSize = ((hexString.length - 2) / 2); // Calculate the size of hexString as binary.
-	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize)); // 61 CKBytes for the Cell minimum + the size of the data.
+	const hexString = "0x" + (await readFile(dataFile)).toString("hex");
+	const dataSize = ((hexString.length - 2) / 2);
+	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address), type: null}, data: hexString};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 

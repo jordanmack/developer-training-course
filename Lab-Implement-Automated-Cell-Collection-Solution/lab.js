@@ -121,7 +121,7 @@ async function setupCells(nodeUrl, indexer)
 
 	// Wait for the transaction to confirm.
 	process.stdout.write("Now setting up Cells for lab exercise. Please wait.");
-	await waitForConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {timeoutMs: 0, recheckMs: 1_000});
+	await waitForConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {recheckMs: 1_000});
 	console.log("\n");
 }
 

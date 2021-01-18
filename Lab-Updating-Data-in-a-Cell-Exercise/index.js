@@ -40,40 +40,16 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 
 	// Locate the Live Cells with the data from dataFile1 add them as an inputs.
-	const {hexString} = await readFileToHexString(dataFile1);
-	const query = {lock: addressToScript(address1), type: null, data: hexString};
-	const cellCollector = new CellCollector(indexer, query);
-	for await (const cell of cellCollector.collect())
-	{
-		transaction = transaction.update("inputs", (i)=>i.concat(cell));
-	}
+	???
 
 	// Create Cells with data from the dataFile2 and dataFile3.
-	const dataFiles = [dataFile2, dataFile3];
-	for(const dataFile of dataFiles)
-	{
-		const {hexString} = await readFileToHexString(dataFile);
-		const outputCapacity = intToHex(ckbytesToShannons(61n) + ckbytesToShannons((hexString.length - 2) / 2));
-		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(address1), type: null}, data: hexString};
-		transaction = transaction.update("outputs", (i)=>i.push(output));
-	}
-
-	// Calculate the capacity sum of the inputs and outputs.
-	let inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	let outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	???
 
 	// Add input cells to the transaction to use for capacity.
-	const capacityRequired = outputCapacity - inputCapacity + ckbytesToShannons(61n) + txFee; // output1 + output2 + minimum for a change cell + tx fee
-	const {inputCells} = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
-	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));
-
-	// Recalculate the capacity sum of the inputs and outputs.
-	inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	???
 
 	// Create a change Cell for the remaining CKBytes.
-	const changeCellCapacity = intToHex(inputCapacity - outputCapacity - txFee);
-	const output2 = {cell_output: {capacity: changeCellCapacity, lock: addressToScript(address1), type: null}, data: "0x"};
-	transaction = transaction.update("outputs", (i)=>i.push(output2));
+	???
 
 	// Add in the witness placeholders.
 	transaction = addDefaultWitnessPlaceholders(transaction);

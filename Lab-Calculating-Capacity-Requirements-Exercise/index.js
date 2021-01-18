@@ -40,7 +40,7 @@ async function main()
 	const input = await getLiveCell(nodeUrl, previousOutput);
 	transaction = transaction.update("inputs", (i)=>i.push(input));
 
-	// Create a Cell with 1,000 CKBytes.
+	// Create a cell with 1,000 CKBytes.
 	const outputCapacity1 = intToHex(ckbytesToShannons(1_000n));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));

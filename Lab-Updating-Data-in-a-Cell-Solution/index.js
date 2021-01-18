@@ -39,7 +39,7 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Locate the Live Cells with the data from dataFile1 add them as an inputs.
+	// Locate the live cells with the data from dataFile1 add them as an inputs.
 	const {hexString} = await readFileToHexString(dataFile1);
 	const query = {lock: addressToScript(address1), type: null, data: hexString};
 	const cellCollector = new CellCollector(indexer, query);
@@ -48,7 +48,7 @@ async function main()
 		transaction = transaction.update("inputs", (i)=>i.concat(cell));
 	}
 
-	// Create Cells with data from the dataFile2 and dataFile3.
+	// Create cells with data from the dataFile2 and dataFile3.
 	const dataFiles = [dataFile2, dataFile3];
 	for(const dataFile of dataFiles)
 	{

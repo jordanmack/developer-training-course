@@ -58,7 +58,7 @@ async function initializeLab(nodeUrl, indexer)
 	// Determine the capacity from recycled Cells.
 	const recycleCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
-	// Create a Cells for funding address.
+	// Create cells for the funding address.
 	const outputCapacity1 = intToHex(ckbytesToShannons(1000n));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address2), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));

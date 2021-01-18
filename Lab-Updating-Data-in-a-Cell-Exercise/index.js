@@ -39,10 +39,10 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Locate the Live Cells with the data from dataFile1 add them as an inputs.
+	// Locate the live cells with the data from dataFile1 add them as an inputs.
 	???
 
-	// Create Cells with data from the dataFile2 and dataFile3.
+	// Create cells with data from the dataFile2 and dataFile3.
 	???
 
 	// Add input cells to the transaction to use for capacity.

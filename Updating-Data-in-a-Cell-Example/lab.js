@@ -84,7 +84,7 @@ async function setupCells(nodeUrl, indexer)
 	// Determine the capacity from recycled Cells.
 	const recycleCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
-	// Create a Cells for funding address.
+	// Create cells for the funding address.
 	const {hexString, dataSize} = await readFileToHexString(dataFile1);
 	const outputCapacity1 = intToHex(ckbytesToShannons(100n));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address2), type: null}, data: hexString};

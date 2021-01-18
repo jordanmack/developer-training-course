@@ -36,7 +36,7 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Create a Cell with 100 CKBytes.
+	// Create a cell with 100 CKBytes.
 	const outputCapacity1 = intToHex(ckbytesToShannons(100n));
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address2), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));

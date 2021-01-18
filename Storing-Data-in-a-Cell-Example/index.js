@@ -33,7 +33,7 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Create a Cell with a capacity large enough for the data being placed in it.
+	// Create a cell with a capacity large enough for the data being placed in it.
 	const hexString = "0x48656c6c6f204e6572766f7321"; // "Hello Nervos!" as a hex string.
 	const dataSize = ((hexString.length - 2) / 2); // Calculate the size of hexString as binary.
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize)); // 61 CKBytes for the Cell minimum + the size of the data.

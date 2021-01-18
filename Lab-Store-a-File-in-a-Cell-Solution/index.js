@@ -45,7 +45,7 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Create a Cell with a capacity large enough for the data being placed in it.
+	// Create a cell with a capacity large enough for the data being placed in it.
 	const hexString = "0x" + (await readFile(dataFile)).toString("hex");
 	const dataSize = ((hexString.length - 2) / 2);
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize));

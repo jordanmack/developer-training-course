@@ -38,7 +38,7 @@ async function main()
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 
-	// Locate a single Live Cell with the desired data and add it as an input.
+	// Locate a single live cell with the desired data and add it as an input.
 	const {hexString: hexString1} = await readFileToHexString(dataFile1);
 	const query = {lock: addressToScript(address1), type: null, data: hexString1};
 	const cellCollector = new CellCollector(indexer, query);
@@ -48,12 +48,12 @@ async function main()
 		break;
 	}
 	if(transaction.inputs.size === 0)
-		throw new Error("Unable to locate a Live Cell with the expected data.");
+		throw new Error("Unable to locate a live cell with the expected data.");
 
 	// Calculate the total capacity of all inputs.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
-	// Create a Cell with data from the specified file.
+	// Create a cell with data from the specified file.
 	const {hexString: hexString2} = await readFileToHexString(dataFile2);
 	const outputCapacity1 = intToHex(inputCapacity - txFee);
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address1), type: null}, data: hexString2};

@@ -89,6 +89,7 @@ async function setupCells(nodeUrl, indexer)
 	while(outputCapacityTotal < ckbytesToShannons(5000n))
 	{
 		const outputCapacity = intToHex(ckbytesToShannons(getRandomInt(500, 1000)) + BigInt(getRandomInt(1, 10_000_000)));
+		// const outputCapacity = intToHex(ckbytesToShannons(61n));
 		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(address2), type: null}, data: "0x"};
 		transaction = transaction.update("outputs", (i)=>i.push(output));	
 		outputCapacityTotal += hexToInt(outputCapacity);
@@ -99,6 +100,8 @@ async function setupCells(nodeUrl, indexer)
 	{
 		const {hexString} = await readFileToHexString(dataFile1);
 		const outputCapacity1 = intToHex(ckbytesToShannons(74n));
+		// const outputCapacity1 = intToHex(109700050000n);
+		// const outputCapacity1 = intToHex(ckbytesToShannons(getRandomInt(74, 2000)));
 		const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address2), type: null}, data: hexString};
 		transaction = transaction.update("outputs", (i)=>i.push(output1));
 	}

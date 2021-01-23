@@ -14,7 +14,7 @@ const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
-// This is the filename that contains the data we want to include in
+// These are the files that contains the data we are searching for and put into cells.
 const dataFile1 = "../files/HelloNervos.txt";
 const dataFile2 = "../files/HelloWorld.txt";
 

@@ -158,21 +158,18 @@ async function main()
 	// Start the Lumos Indexer and wait until it is fully synchronized.
 	const indexer = await initializeLumosIndexer(nodeUrl);
 
-	while(true)
-	{
-		// Initialize our lab.
-		await initializeLab(nodeUrl, indexer);
-		await indexerReady(indexer);
+	// Initialize our lab.
+	await initializeLab(nodeUrl, indexer);
+	await indexerReady(indexer);
 
-		// Create a cell using the multi-sig lock.
-		const multisigCellOutPoint = await createMultisigCell(indexer);
-		await indexerReady(indexer);
+	// Create a cell using the multi-sig lock.
+	const multisigCellOutPoint = await createMultisigCell(indexer);
+	await indexerReady(indexer);
 
-		// Unlock and consume the cell we created with the multi-sig lock.
-		await consumeMultisigCell(indexer, multisigCellOutPoint);
-		await indexerReady(indexer);
-	
-		console.log("Example completed successfully!\n");
-	}
+	// Unlock and consume the cell we created with the multi-sig lock.
+	await consumeMultisigCell(indexer, multisigCellOutPoint);
+	await indexerReady(indexer);
+
+	console.log("Example completed successfully!\n");
 }
 main();

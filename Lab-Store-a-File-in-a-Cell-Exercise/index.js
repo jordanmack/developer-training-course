@@ -45,7 +45,7 @@ async function main()
 	const output1 = ???;
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add the input cell to the transaction.
+	// Add capacity to the transaction.
 	const capacityRequired = hexToInt(outputCapacity1) + ckbytesToShannons(61n) + txFee; // output1 + minimum for a change cell + tx fee
 	const {inputCells} = await collectCapacity(indexer, addressToScript(address), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));

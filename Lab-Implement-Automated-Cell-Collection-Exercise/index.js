@@ -41,7 +41,7 @@ async function main()
 	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(address2), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add the input cell to the transaction.
+	// Add capacity to the transaction.
 	const capacityRequired = ???; // output1 + minimum for a change cell + tx fee
 	const {inputCells} = ???;
 	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));

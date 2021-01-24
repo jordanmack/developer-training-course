@@ -1,4 +1,3 @@
-/* eslint-disable node/no-unsupported-features/es-syntax */
 "use strict";
 
 const {core, utils} = require("@ckb-lumos/base");

@@ -7,7 +7,7 @@ const {secp256k1Blake160Multisig} = require("@ckb-lumos/common-scripts");
 const {initializeConfig} = require("@ckb-lumos/config-manager");
 const {normalizers} = require("ckb-js-toolkit");
 const {addressToScript, locateCellDep, TransactionSkeleton, sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, getLiveCell, sendTransaction, signMessage, signTransaction, waitForTransactionConfirmation, DEFAULT_LOCK_HASH, MULTISIG_LOCK_HASH, indexerReady} = require("../lib/index.js");
+const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, getLiveCell, sendTransaction, signMessage, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady} = require("../lib/index.js");
 const {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} = require("../lib/util.js");
 const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
@@ -40,7 +40,7 @@ async function createMultisigCell(indexer)
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
-	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
+	transaction = addDefaultCellDeps(transaction);
 
 	// Create a cell that uses the multi-sig lock.
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + txFee);

@@ -17,8 +17,6 @@ const nodeUrl = "http://127.0.0.1:8114/";
 // This is the private key and address which will be used.
 const privateKey1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
-const privateKey2 = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
-const address2 = "ckt1qyqvsv5240xeh85wvnau2eky8pwrhh4jr8ts8vyj37";	
 
 // Multi-Sig configuration.
 const multisigAddresses =
@@ -29,37 +27,13 @@ const multisigAddresses =
 ];
 const multisigReserved = 0;
 const multisigMustMatch = 0;
-const multisigThreshold = 2;
+const multisigThreshold = 1;
 const multisigPublicKeys = multisigAddresses.length;
 
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function main()
-{
-	// Initialize the Lumos configuration which is held in config.json.
-	initializeConfig();
-
-	// Start the Lumos Indexer and wait until it is fully synchronized.
-	const indexer = await initializeLumosIndexer(nodeUrl);
-
-	while(true)
-	{
-		// Initialize our lab.
-		await initializeLab(nodeUrl, indexer);
-		await indexerReady(indexer);
-
-		const txid = await createMultisigCell(indexer);
-		await indexerReady(indexer);
-
-		await consumeMultisigCell(indexer, txid);
-		await indexerReady(indexer);
-	
-		console.log("Example completed successfully!\n");
-	}
-}
-main();
-
+// Creates a cell using the Secp256k1-Blake2b multi-sig lock.
 async function createMultisigCell(indexer)
 {
 	// Create a transaction skeleton.
@@ -69,8 +43,8 @@ async function createMultisigCell(indexer)
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
 
-	// Create a cell with a capacity large enough for the extra args data.
-	const outputCapacity1 = intToHex(ckbytesToShannons(105n));
+	// Create a cell that uses the multi-sig lock.
+	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + txFee);
 	const multisigScript = "0x"
 		+ multisigReserved.toString(16).padStart(2, "0")
 		+ multisigMustMatch.toString(16).padStart(2, "0")
@@ -121,10 +95,11 @@ async function createMultisigCell(indexer)
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
-	return txid;
+	return {tx_hash: txid, index: "0x0"};
 }
 
-async function consumeMultisigCell(indexer, txid)
+// Consumes the cell with the multi-sig lock and sends the capacity to address1.
+async function consumeMultisigCell(indexer, multisigCellOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -134,7 +109,7 @@ async function consumeMultisigCell(indexer, txid)
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
 
 	// Add the input cell to the transaction.
-	const input = await getLiveCell(nodeUrl, {tx_hash: txid, index: "0x0"});
+	const input = await getLiveCell(nodeUrl, multisigCellOutPoint);
 	transaction = transaction.update("inputs", (i)=>i.push(input));
 
 	// Get the capacity sums of the inputs and outputs.
@@ -142,7 +117,7 @@ async function consumeMultisigCell(indexer, txid)
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(inputCapacity - txFee);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(address2), type: null}, data: "0x"};
+	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(address1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output2));	
 
 	// Add in the witness placeholders.
@@ -160,8 +135,7 @@ async function consumeMultisigCell(indexer, txid)
 	transaction = secp256k1Blake160Multisig.prepareSigningEntries(transaction);
 	const signingEntries = transaction.get("signingEntries").toArray();
 	const signature1 = signMessage(privateKey1, signingEntries[0].message);
-	const signature2 = signMessage(privateKey2, signingEntries[0].message);
-	const multisigSignature = multisigScript + signature1.substr(2) + signature2.substr(2);
+	const multisigSignature = multisigScript + signature1.substr(2);
 	const signedTx = sealTransaction(transaction, [multisigSignature]);
 
 	// Print the details of the transaction to the console.
@@ -171,10 +145,37 @@ async function consumeMultisigCell(indexer, txid)
 	await validateLab(transaction);
 
 	// Send the transaction to the RPC node.
-	txid = await sendTransaction(nodeUrl, signedTx);
+	const txid = await sendTransaction(nodeUrl, signedTx);
 	console.log(`Transaction Sent: ${txid}\n`);
 
 	// Wait for the transaction to confirm.
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 }
+
+async function main()
+{
+	// Initialize the Lumos configuration which is held in config.json.
+	initializeConfig();
+
+	// Start the Lumos Indexer and wait until it is fully synchronized.
+	const indexer = await initializeLumosIndexer(nodeUrl);
+
+	while(true)
+	{
+		// Initialize our lab.
+		await initializeLab(nodeUrl, indexer);
+		await indexerReady(indexer);
+
+		// Create a cell using the multi-sig lock.
+		const multisigCellOutPoint = await createMultisigCell(indexer);
+		await indexerReady(indexer);
+
+		// Unlock and consume the cell we created with the multi-sig lock.
+		await consumeMultisigCell(indexer, multisigCellOutPoint);
+		await indexerReady(indexer);
+	
+		console.log("Example completed successfully!\n");
+	}
+}
+main();

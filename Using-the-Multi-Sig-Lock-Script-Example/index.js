@@ -41,7 +41,6 @@ async function createMultisigCell(indexer)
 
 	// Add the cell dep for the lock script.
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
-	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
 
 	// Create a cell that uses the multi-sig lock.
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + txFee);
@@ -105,7 +104,6 @@ async function consumeMultisigCell(indexer, multisigCellOutPoint)
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
-	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
 
 	// Add the input cell to the transaction.

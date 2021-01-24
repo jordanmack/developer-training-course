@@ -19,6 +19,7 @@
 		"@nervosnetwork/ckb-sdk-utils": "^0.38.2",
 		"ckb-js-toolkit": "^0.9.3",
 		"lodash": "^4.17.20",
-		"secp256k1": "^4.0.2"
+		"secp256k1": "^4.0.2",
+		"secp256r1": "0.0.3"
 	}
 }

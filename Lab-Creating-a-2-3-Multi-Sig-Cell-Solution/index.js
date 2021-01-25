@@ -1,13 +1,11 @@
 "use strict";
 
-const {core, utils} = require("@ckb-lumos/base");
+const {utils} = require("@ckb-lumos/base");
 const {ckbHash} = utils;
-const {secp256k1Blake160Multisig} = require("@ckb-lumos/common-scripts");
 const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {normalizers} = require("ckb-js-toolkit");
-const {addressToScript, locateCellDep, TransactionSkeleton, sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, getLiveCell, sendTransaction, signMessage, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady} = require("../lib/index.js");
-const {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} = require("../lib/util.js");
+const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
+const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, initializeLumosIndexer, sendTransaction, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady} = require("../lib/index.js");
+const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} = require("../lib/util.js");
 const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
 // Nervos CKB Development Blockchain URL.

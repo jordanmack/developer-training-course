@@ -109,7 +109,7 @@ async function consumeMultisigCell(indexer, multisigCellOutPoint)
 	const input = await getLiveCell(nodeUrl, multisigCellOutPoint);
 	transaction = transaction.update("inputs", (i)=>i.push(input));
 
-	// Get the capacity sums of the inputs and outputs.
+	// Get the capacity sums of the inputs.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.

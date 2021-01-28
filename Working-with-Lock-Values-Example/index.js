@@ -18,10 +18,9 @@ console.log(`Private Key:\t${privateKey} (32 bytes)`);
 const publicKey = uint8ArrayToHex(secp256k1.publicKeyCreate(hexToUint8Array(privateKey)));
 console.log(`Public Key:\t${publicKey} (33 bytes)`);
 
-// This is the lock arg which is generated from the public key. We're using a plain Blake2b hasher here to show the required params, but you can also use Lumos' ckbHash() function.
-const hasher = blake2b(32, null, null, new TextEncoder("utf-8").encode("ckb-default-hash")); // In Nervos, all Blake2b hashes always use the personalization string "ckb-default-hash".
-hasher.update(hexToUint8Array(publicKey));
-const lockArg = uint8ArrayToHex(hasher.digest()).substr(0, 42); // After the hasher is digested it returns a Uint8Array which we convert to hex and then truncate to 20 bytes.
+// This is the lock arg which is generated from the public key.
+// const lockArg = uint8ArrayToHex(blake2b(32, null, null, new TextEncoder("utf-8").encode("ckb-default-hash")).update(hexToUint8Array(publicKey)).digest()).substr(0, 42); // This the plain Blake2b.
+const lockArg = ckbHash(publicKey).serializeJson().substr(0, 42); // This uses Lumos' ckbHash() function.
 console.log(`Lock Arg:\t${lockArg} (20 bytes)`);
 
 // Here we construct a lock script using the default lock and the lock arg for our genesis account. 

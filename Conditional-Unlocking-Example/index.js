@@ -194,25 +194,22 @@ async function main()
 	// Start the Lumos Indexer and wait until it is fully synchronized.
 	const indexer = await initializeLumosIndexer(nodeUrl);
 
-	while(true)
-	{
-		// Initialize our lab.
-		await initializeLab(nodeUrl, indexer);
-		await indexerReady(indexer);
+	// Initialize our lab.
+	await initializeLab(nodeUrl, indexer);
+	await indexerReady(indexer);
 
-		// Create a cell that contains the CKB 500 binary.
-		const ckb500CodeOutPoint = await deployCkb500Binary(indexer);
-		await indexerReady(indexer);
+	// Create a cell that contains the CKB 500 binary.
+	const ckb500CodeOutPoint = await deployCkb500Binary(indexer);
+	await indexerReady(indexer);
 
-		// Create cells that uses the CKB 500 binary that was just deployed.
-		await createCellsWithCkb500Lock(indexer);
-		await indexerReady(indexer);
+	// Create cells that uses the CKB 500 binary that was just deployed.
+	await createCellsWithCkb500Lock(indexer);
+	await indexerReady(indexer);
 
-		// Consume the cells locked with the CKB 500 lock.
-		await consumeCellsWithCkb500Lock(indexer, ckb500CodeOutPoint);
-		await indexerReady(indexer);
+	// Consume the cells locked with the CKB 500 lock.
+	await consumeCellsWithCkb500Lock(indexer, ckb500CodeOutPoint);
+	await indexerReady(indexer);
 
-		console.log("Example completed successfully!");
-	}
+	console.log("Example completed successfully!");
 }
 main();

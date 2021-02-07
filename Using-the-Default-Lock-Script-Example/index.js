@@ -140,21 +140,18 @@ async function main()
 	// Start the Lumos Indexer and wait until it is fully synchronized.
 	const indexer = await initializeLumosIndexer(nodeUrl);
 
-	while(true)
-	{
-		// Initialize our lab.
-		await initializeLab(nodeUrl, indexer);
-		await indexerReady(indexer);
+	// Initialize our lab.
+	await initializeLab(nodeUrl, indexer);
+	await indexerReady(indexer);
 
-		// 
-		const defaultLockCellOutPoints = await createDefaultLockCells(indexer);
-		await indexerReady(indexer);
+	// Create some cells using the default lock script.
+	const defaultLockCellOutPoints = await createDefaultLockCells(indexer);
+	await indexerReady(indexer);
 
-		// 
-		await consumeDefaultLockCells(indexer, defaultLockCellOutPoints);
-		await indexerReady(indexer);	
+	// Consume the cells we just created with the default lock script.
+	await consumeDefaultLockCells(indexer, defaultLockCellOutPoints);
+	await indexerReady(indexer);	
 
-		console.log("Example completed successfully!");
-	}
+	console.log("Example completed successfully!");
 }
 main();

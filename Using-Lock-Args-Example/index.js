@@ -87,7 +87,7 @@ async function createCellsWithCkbLockLock(indexer)
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
 
-	// Create cells using the CKB Lock lock.
+	// Create cells using the CKB Lock.
 	const outputCapacity1 = ckbytesToShannons(500n);
 	const ckbLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
 	const lockScript1 =
@@ -208,7 +208,7 @@ async function main()
 	await createCellsWithCkbLockLock(indexer);
 	await indexerReady(indexer);
 
-	// Consume the cells locked with the CKB Lock lock.
+	// Consume the cells locked with the CKB Lock.
 	await consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint);
 	await indexerReady(indexer);
 

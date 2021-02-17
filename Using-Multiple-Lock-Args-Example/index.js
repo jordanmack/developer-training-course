@@ -15,14 +15,14 @@ const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
-// This is the "CKB Lock" RISC-V binary.
-const dataFile1 = "../files/ckblock";
-const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the CKB Lock binary.
+// This is the "CKB Output Lock" RISC-V binary.
+const dataFile1 = "../files/ckboutputlock";
+const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the CKB Output Lock binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function deployCkbLockBinary(indexer)
+async function deployCkbOutputLockBinary(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -69,7 +69,7 @@ async function deployCkbLockBinary(indexer)
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
-	// Return the out point for the CKB Lock binary so it can be used in the next transaction.
+	// Return the out point for the CKB Output Lock binary so it can be used in the next transaction.
 	const outPoint =
 	{
 		tx_hash: txid,
@@ -79,7 +79,7 @@ async function deployCkbLockBinary(indexer)
 	return outPoint;
 }
 
-async function createCellsWithCkbLockLock(indexer)
+async function createCellsWithCkbOutputLock(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -87,14 +87,15 @@ async function createCellsWithCkbLockLock(indexer)
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
 
-	// Create cells using the CKB Lock lock.
+	// Create cells using the CKB Output Lock lock.
 	const outputCapacity1 = ckbytesToShannons(500n);
-	const ckbLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
+	const ckbOutputLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
+	const ckbOutputLockCount1 = intToU64LeHexBytes(3);
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbLockAmount1
+		args: ckbOutputLockAmount1 + ckbOutputLockCount1.substr(2)
 	};
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.concat([output1, output1]));
@@ -136,38 +137,52 @@ async function createCellsWithCkbLockLock(indexer)
 	console.log("\n");
 }
 
-async function consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint)
+async function consumeCellsWithCkbOutputLock(indexer, ckbOutputLockCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
-	const cellDep = {dep_type: "code", out_point: ckbLockCodeOutPoint};
+	transaction = addDefaultCellDeps(transaction);
+	const cellDep = {dep_type: "code", out_point: ckbOutputLockCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
-	// Add the CKB Lock cells to the transaction. 
-	const capacityRequired = ckbytesToShannons(1_000n);
-	const ckbLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
+	// Add the CKB Output Lock cells to the transaction. 
+	const capacityRequired1 = ckbytesToShannons(1_000n);
+	const ckbOutputLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
+	const ckbOutputLockCount1 = intToU64LeHexBytes(3);
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbLockAmount1
+		args: ckbOutputLockAmount1 + ckbOutputLockCount1.substr(2)
 	};
-	const collectedCells = await collectCapacity(indexer, lockScript1, capacityRequired);
+	const collectedCells = await collectCapacity(indexer, lockScript1, capacityRequired1);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
-	// Determine the capacity from all input Cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	// Add an output cell with the specific amount required by the CKB Output Lock.
+	const outputCell = {cell_output: {capacity: intToHex(ckbytesToShannons(1_000n)), lock: addressToScript(address1), type: null}, data: "0x"};
+	transaction = transaction.update("outputs", (i)=>i.concat([outputCell, outputCell, outputCell]));
+
+	// Determine the capacity from input and output cells.
+	let inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	let outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+
+	// Add capacity to the transaction.
+	const capacityRequired2 = outputCapacity - inputCapacity + ckbytesToShannons(61n) + txFee;
+	const {inputCells} = await collectCapacity(indexer, addressToScript(address1), capacityRequired2);
+	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));
+
+	// Recalculate new input capacity.
+	inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - txFee);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(address1), type: null}, data: "0x"};
+	const change = {cell_output: {capacity: changeCapacity, lock: addressToScript(address1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
-	// transaction = addDefaultWitnessPlaceholders(transaction);
+	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
 	describeTransaction(transaction.toJS());
@@ -176,8 +191,7 @@ async function consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint)
 	await validateLab(transaction);
 
 	// Sign the transaction.
-	// const signedTx = signTransaction(transaction, privateKey1);
-	const signedTx = sealTransaction(transaction, []);
+	const signedTx = signTransaction(transaction, privateKey1);
 
 	// Send the transaction to the RPC node.
 	const txid = await sendTransaction(nodeUrl, signedTx);
@@ -200,16 +214,16 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 	await indexerReady(indexer);
 
-	// Create a cell that contains the CKB Lock binary.
-	const ckbLockCodeOutPoint = await deployCkbLockBinary(indexer);
+	// Create a cell that contains the CKB Output Lock binary.
+	const ckbOutputLockCodeOutPoint = await deployCkbOutputLockBinary(indexer);
 	await indexerReady(indexer);
 
-	// Create cells that uses the CKB Lock binary that was just deployed.
-	await createCellsWithCkbLockLock(indexer);
+	// Create cells that uses the CKB Output Lock binary that was just deployed.
+	await createCellsWithCkbOutputLock(indexer);
 	await indexerReady(indexer);
 
-	// Consume the cells locked with the CKB Lock lock.
-	await consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint);
+	// Consume the cells locked with the CKB Output Lock lock.
+	await consumeCellsWithCkbOutputLock(indexer, ckbOutputLockCodeOutPoint);
 	await indexerReady(indexer);
 
 	console.log("Example completed successfully!");

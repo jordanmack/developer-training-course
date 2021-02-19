@@ -15,14 +15,14 @@ const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
-// This is the "CKB Output Lock" RISC-V binary.
-const dataFile1 = "../files/ckboutputlock";
-const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the CKB Output Lock binary.
+// This is the "OCC Lock" RISC-V binary.
+const dataFile1 = "../files/occlock";
+const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the OCC Lock binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function deployCkbOutputLockBinary(indexer)
+async function deployOccLockBinary(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -69,7 +69,7 @@ async function deployCkbOutputLockBinary(indexer)
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
-	// Return the out point for the CKB Output Lock binary so it can be used in the next transaction.
+	// Return the out point for the OCC Lock binary so it can be used in the next transaction.
 	const outPoint =
 	{
 		tx_hash: txid,
@@ -79,7 +79,7 @@ async function deployCkbOutputLockBinary(indexer)
 	return outPoint;
 }
 
-async function createCellsWithCkbOutputLock(indexer)
+async function createCellsWithOccLock(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -87,15 +87,15 @@ async function createCellsWithCkbOutputLock(indexer)
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
 
-	// Create cells using the CKB Output Lock lock.
+	// Create cells using the OCC Lock.
 	const outputCapacity1 = ckbytesToShannons(500n);
-	const ckbOutputLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
-	const ckbOutputLockCount1 = intToU64LeHexBytes(3);
+	const occLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
+	const occLockCount1 = intToU64LeHexBytes(3);
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbOutputLockAmount1 + ckbOutputLockCount1.substr(2)
+		args: occLockAmount1 + occLockCount1.substr(2)
 	};
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.concat([output1, output1]));
@@ -137,30 +137,30 @@ async function createCellsWithCkbOutputLock(indexer)
 	console.log("\n");
 }
 
-async function consumeCellsWithCkbOutputLock(indexer, ckbOutputLockCodeOutPoint)
+async function consumeCellsWithOccLock(indexer, occLockCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: ckbOutputLockCodeOutPoint};
+	const cellDep = {dep_type: "code", out_point: occLockCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
-	// Add the CKB Output Lock cells to the transaction. 
+	// Add the OCC Lock cells to the transaction. 
 	const capacityRequired1 = ckbytesToShannons(1_000n);
-	const ckbOutputLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
-	const ckbOutputLockCount1 = intToU64LeHexBytes(3);
+	const occLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(1_000n));
+	const occLockCount1 = intToU64LeHexBytes(3);
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbOutputLockAmount1 + ckbOutputLockCount1.substr(2)
+		args: occLockAmount1 + occLockCount1.substr(2)
 	};
 	const collectedCells = await collectCapacity(indexer, lockScript1, capacityRequired1);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
-	// Add an output cell with the specific amount required by the CKB Output Lock.
+	// Add an output cell with the specific amount required by the OCC Lock.
 	const outputCell = {cell_output: {capacity: intToHex(ckbytesToShannons(1_000n)), lock: addressToScript(address1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.concat([outputCell, outputCell, outputCell]));
 
@@ -214,16 +214,16 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 	await indexerReady(indexer);
 
-	// Create a cell that contains the CKB Output Lock binary.
-	const ckbOutputLockCodeOutPoint = await deployCkbOutputLockBinary(indexer);
+	// Create a cell that contains the OCC Lock binary.
+	const occLockCodeOutPoint = await deployOccLockBinary(indexer);
 	await indexerReady(indexer);
 
-	// Create cells that uses the CKB Output Lock binary that was just deployed.
-	await createCellsWithCkbOutputLock(indexer);
+	// Create cells that uses the OCC Lock binary that was just deployed.
+	await createCellsWithOccLock(indexer);
 	await indexerReady(indexer);
 
-	// Consume the cells locked with the CKB Output Lock lock.
-	await consumeCellsWithCkbOutputLock(indexer, ckbOutputLockCodeOutPoint);
+	// Consume the cells locked with the OCC Lock.
+	await consumeCellsWithOccLock(indexer, occLockCodeOutPoint);
 	await indexerReady(indexer);
 
 	console.log("Example completed successfully!");

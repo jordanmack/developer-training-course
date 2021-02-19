@@ -15,14 +15,14 @@ const nodeUrl = "http://127.0.0.1:8114/";
 const privateKey1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const address1 = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
 
-// This is the "CKB Lock" RISC-V binary.
-const dataFile1 = "../files/ckblock";
-const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the CKB Lock binary.
+// This is the "ICC Lock" RISC-V binary.
+const dataFile1 = "../files/icclock";
+const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1).hexString)).serializeJson(); // Blake2b hash of the ICC Lock binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function deployCkbLockBinary(indexer)
+async function deployIccLockBinary(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -69,7 +69,7 @@ async function deployCkbLockBinary(indexer)
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
-	// Return the out point for the CKB Lock binary so it can be used in the next transaction.
+	// Return the out point for the ICC Lock binary so it can be used in the next transaction.
 	const outPoint =
 	{
 		tx_hash: txid,
@@ -79,7 +79,7 @@ async function deployCkbLockBinary(indexer)
 	return outPoint;
 }
 
-async function createCellsWithCkbLockLock(indexer)
+async function createCellsWithIccLock(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -87,14 +87,14 @@ async function createCellsWithCkbLockLock(indexer)
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
 
-	// Create cells using the CKB Lock.
+	// Create cells using the ICC Lock.
 	const outputCapacity1 = ckbytesToShannons(500n);
-	const ckbLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
+	const iccLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbLockAmount1
+		args: iccLockAmount1
 	};
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.concat([output1, output1]));
@@ -136,23 +136,23 @@ async function createCellsWithCkbLockLock(indexer)
 	console.log("\n");
 }
 
-async function consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint)
+async function consumeCellsWithIccLock(indexer, iccLockCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
 	// Add the cell dep for the lock script.
-	const cellDep = {dep_type: "code", out_point: ckbLockCodeOutPoint};
+	const cellDep = {dep_type: "code", out_point: iccLockCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
-	// Add the CKB Lock cells to the transaction. 
+	// Add the ICC Lock cells to the transaction. 
 	const capacityRequired = ckbytesToShannons(1_000n);
-	const ckbLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
+	const iccLockAmount1 = intToU64LeHexBytes(ckbytesToShannons(500n));
 	const lockScript1 =
 	{
 		code_hash: dataFileHash1,
 		hash_type: "data",
-		args: ckbLockAmount1
+		args: iccLockAmount1
 	};
 	const collectedCells = await collectCapacity(indexer, lockScript1, capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
@@ -200,16 +200,16 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 	await indexerReady(indexer);
 
-	// Create a cell that contains the CKB Lock binary.
-	const ckbLockCodeOutPoint = await deployCkbLockBinary(indexer);
+	// Create a cell that contains the ICC Lock binary.
+	const iccLockCodeOutPoint = await deployIccLockBinary(indexer);
 	await indexerReady(indexer);
 
-	// Create cells that uses the CKB Lock binary that was just deployed.
-	await createCellsWithCkbLockLock(indexer);
+	// Create cells that uses the ICC Lock binary that was just deployed.
+	await createCellsWithIccLock(indexer);
 	await indexerReady(indexer);
 
-	// Consume the cells locked with the CKB Lock.
-	await consumeCellsWithCkbLockLock(indexer, ckbLockCodeOutPoint);
+	// Consume the cells locked with the ICC Lock.
+	await consumeCellsWithIccLock(indexer, iccLockCodeOutPoint);
 	await indexerReady(indexer);
 
 	console.log("Example completed successfully!");

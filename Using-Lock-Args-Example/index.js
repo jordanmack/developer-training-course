@@ -177,6 +177,8 @@ async function consumeCellsWithIccLock(indexer, iccLockCodeOutPoint)
 
 	// Sign the transaction.
 	// const signedTx = signTransaction(transaction, privateKey1);
+
+	// Seal the transaction.
 	const signedTx = sealTransaction(transaction, []);
 
 	// Send the transaction to the RPC node.

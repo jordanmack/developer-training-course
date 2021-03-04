@@ -129,7 +129,7 @@ async function consumeMultiSigCell(indexer, deployOutPoints) {
 	transaction = addDefaultCellDeps(transaction);
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
 
-    // Get a live cell for each out point and add to the transaction.
+	// Get a live cell for each out point and add to the transaction.
 	for(const outPoint of deployOutPoints) {
 		const input = await getLiveCell(nodeUrl, outPoint);
 		transaction = transaction.update("inputs", (i)=>i.push(input));	

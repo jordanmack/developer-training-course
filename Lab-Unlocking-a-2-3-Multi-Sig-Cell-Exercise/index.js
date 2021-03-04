@@ -82,7 +82,7 @@ async function consumeMultiSigCell(indexer, deployOutPoints) {
 
 	// Add the cell dep for the multi sig lock script.
 
-    // Get a live cell for each out point and add to the transaction.
+	// Get a live cell for each out point and add to the transaction.
 
 	// Get the capacity sum of the inputs.
 

@@ -53,7 +53,7 @@ async function setupCells(nodeUrl, indexer)
 	let addressUsed1 = false;
 	let addressUsed2 = false;
 
-	// Recycle all existing Cells to inputs.
+	// Recycle all existing cells to inputs.
 	const query = {lock: addressToScript(address2), type: null};
 	const cellCollector = new CellCollector(indexer, query);
 	let recycleCells = [];

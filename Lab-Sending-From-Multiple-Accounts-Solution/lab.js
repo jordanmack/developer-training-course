@@ -66,7 +66,7 @@ async function initializeLab(nodeUrl, indexer)
 	// Cycle through recycle addresses.
 	for (const [addressIndex, account] of accountsToRecycle.entries())
 	{
-		// Recycle all existing Cells to inputs.
+		// Recycle all existing cells to inputs.
 		const query = {lock: addressToScript(account.address), type: null};
 		const cellCollector = new CellCollector(indexer, query);
 		const recycleCells = [];

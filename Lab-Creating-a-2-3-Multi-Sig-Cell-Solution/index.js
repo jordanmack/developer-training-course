@@ -100,6 +100,6 @@ async function main()
 	await waitForTransactionConfirmation(nodeUrl, txid);
 	console.log("\n");
 
-	console.log("Lab completed successfully!\n");
+	console.log("Lab completed successfully!");
 }
 main();

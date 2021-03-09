@@ -94,7 +94,7 @@ async function createCellWithAlwaysSuccessLock(indexer, alwaysSuccessCodeOutPoin
 		code_hash: dataFileHash1,
 		hash_type: "data",
 		args: "0x"
-	}
+	};
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 

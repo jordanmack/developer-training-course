@@ -38,7 +38,7 @@ async function deployAlwaysSuccessBinary(indexer)
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(address1), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), outputCapacity1 + ckbytesToShannons(61n) + txFee);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
@@ -86,7 +86,7 @@ async function createCellWithAlwaysSuccessTypeScript(indexer, alwaysSuccessCodeO
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
-	// Add the cell dep for the lock script.
+	// Add the cell deps for the lock script and type script.
 	transaction = addDefaultCellDeps(transaction);
 	const cellDep = {dep_type: "code", out_point: alwaysSuccessCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
@@ -108,7 +108,7 @@ async function createCellWithAlwaysSuccessTypeScript(indexer, alwaysSuccessCodeO
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1, output1, output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const capacityRequired = outputCapacity1 + ckbytesToShannons(61n) + txFee;
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
@@ -148,7 +148,7 @@ async function consumeCellWithAlwaysSuccessTypeScript(indexer, alwaysSuccessCode
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
-	// Add the cell dep for the lock script.
+	// Add the cell deps for the lock script and type script.
 	transaction = addDefaultCellDeps(transaction);
 	const cellDep = {dep_type: "code", out_point: alwaysSuccessCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
@@ -166,7 +166,7 @@ async function consumeCellWithAlwaysSuccessTypeScript(indexer, alwaysSuccessCode
 	for await (const cell of cellCollector.collect())
 		transaction = transaction.update("inputs", (i)=>i.push(cell));
 
-	// Add input cells.
+	// Add input capacity cells.
 	// const capacityRequired = ckbytesToShannons(61n) + txFee;
 	// const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	// transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));

@@ -36,7 +36,7 @@ async function deployCkb500Binary(indexer)
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(address1), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), outputCapacity1 + ckbytesToShannons(61n) + txFee);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
@@ -101,7 +101,7 @@ async function createCellsWithCkb500Lock(indexer)
 	// Determine the capacity from all output Cells.
 	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	
-	// Add input cells.
+	// Add input capacity cells.
 	const capacityRequired = outputCapacity + ckbytesToShannons(61n) + txFee;
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));

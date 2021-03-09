@@ -120,7 +120,7 @@ async function deploySecp256r1Binary(indexer)
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(address1), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), outputCapacity1 + ckbytesToShannons(61n) + txFee);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
@@ -182,7 +182,7 @@ async function createCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint)
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const capacityRequired = outputCapacity1 + ckbytesToShannons(61n) + txFee;
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
@@ -240,7 +240,7 @@ async function consumeCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint, 
 	const input = await getLiveCell(nodeUrl, alwaysSuccessCellOutPoint);
 	transaction = transaction.update("inputs", (i)=>i.push(input));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const capacityRequired = ckbytesToShannons(61n) + txFee;
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));

@@ -67,7 +67,7 @@ async function deployAlwaysSuccessBinary(nodeUrl, indexer)
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(address2), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
-	// Add input cells.
+	// Add input capacity cells.
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), outputCapacity1 + ckbytesToShannons(61n) + txFee);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 

@@ -41,7 +41,7 @@ async function deployDataCapBinary(indexer)
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), outputCapacity1 + ckbytesToShannons(61n) + txFee);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
-	// Determine the capacity from all input Cells.
+	// Determine the capacity of all input cells.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
@@ -116,7 +116,7 @@ async function createCellsWithDataCapType(indexer, dataCapCodeOutPoint)
 	const collectedCells = await collectCapacity(indexer, addressToScript(address1), capacityRequired);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
-	// Determine the capacity from all input Cells.
+	// Determine the capacity of all input cells.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.

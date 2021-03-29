@@ -55,7 +55,7 @@ async function setupCells(nodeUrl, indexer)
 	let addressUsed2 = false;
 
 	// Recycle all existing cells to inputs.
-	const query = {lock: addressToScript(address2), type: null};
+	const query = {lock: addressToScript(address2), type: "empty"};
 	const cellCollector = new CellCollector(indexer, query);
 	let recycleCells = [];
 	for await (const cell of cellCollector.collect())
@@ -86,7 +86,7 @@ async function setupCells(nodeUrl, indexer)
 		addressUsed1 = true;
 	}
 
-	// Determine the capacity from all input Cells.
+	// Determine the capacity of all input cells.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.

@@ -100,7 +100,7 @@ async function initializeLab(nodeUrl, indexer)
 		addressesUsed.add(0);
 	}
 
-	// Determine the capacity from all input Cells.
+	// Determine the capacity of all input cells.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.

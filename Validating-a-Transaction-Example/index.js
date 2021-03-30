@@ -85,7 +85,7 @@ async function createCells(indexer, ic3typeCodeOutPoint)
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
-	// Add the cell dep for the lock script.
+	// Add the cell deps for the default lock script and the IC3Type script.
 	transaction = addDefaultCellDeps(transaction);
 	const cellDep = {dep_type: "code", out_point: ic3typeCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));

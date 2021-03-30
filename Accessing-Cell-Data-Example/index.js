@@ -23,7 +23,7 @@ const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function deployData10Binary(indexer)
+async function deployCode(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -80,7 +80,7 @@ async function deployData10Binary(indexer)
 	return outPoint;
 }
 
-async function createCellsWithData10Type(indexer, data10CodeOutPoint)
+async function createCells(indexer, data10CodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -92,7 +92,7 @@ async function createCellsWithData10Type(indexer, data10CodeOutPoint)
 
 	// Create cells using the Data10.
 	const messages = ["HelloWorld", "Foo Bar", "1234567890"];
-	for(let message of messages)
+	for(const message of messages)
 	{
 		const outputCapacity1 = ckbytesToShannons(500n);
 		const lockScript1 = addressToScript(address1);
@@ -144,7 +144,7 @@ async function createCellsWithData10Type(indexer, data10CodeOutPoint)
 	console.log("\n");
 }
 
-async function consumeCellsWithData10Type(indexer, data10CodeOutPoint)
+async function consumeCells(indexer, data10CodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -210,15 +210,15 @@ async function main()
 	await indexerReady(indexer);
 
 	// Create a cell that contains the Data10 binary.
-	const data10CodeOutPoint = await deployData10Binary(indexer);
+	const data10CodeOutPoint = await deployCode(indexer);
 	await indexerReady(indexer);
 
 	// Create cells that uses the Data10 binary that was just deployed.
-	await createCellsWithData10Type(indexer, data10CodeOutPoint);
+	await createCells(indexer, data10CodeOutPoint);
 	await indexerReady(indexer);
 
 	// Consume the cells locked with the Data10.
-	await consumeCellsWithData10Type(indexer, data10CodeOutPoint);
+	await consumeCells(indexer, data10CodeOutPoint);
 	await indexerReady(indexer);
 
 	console.log("Example completed successfully!");

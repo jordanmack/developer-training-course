@@ -23,7 +23,7 @@ const dataFileHash1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(dataFile1
 // This is the TX fee amount that will be paid in Shannons.
 const txFee = 100_000n;
 
-async function deployDataCapBinary(indexer)
+async function deployCode(indexer)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -80,7 +80,7 @@ async function deployDataCapBinary(indexer)
 	return outPoint;
 }
 
-async function createCellsWithDataCapType(indexer, dataCapCodeOutPoint)
+async function createCells(indexer, dataCapCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -90,8 +90,8 @@ async function createCellsWithDataCapType(indexer, dataCapCodeOutPoint)
 	const cellDep = {dep_type: "code", out_point: dataCapCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
-	// Create cells using the DataCap.
-	const messages = ["HelloWorld", "Foo Bar", "1234567890"];
+	// Create cells using the DataCap type script.
+	const messages = ["Hello World!", "Foo Bar", "1234567890"];
 	for(let message of messages)
 	{
 		const outputCapacity1 = ckbytesToShannons(500n);
@@ -145,7 +145,7 @@ async function createCellsWithDataCapType(indexer, dataCapCodeOutPoint)
 	console.log("\n");
 }
 
-async function consumeCellsWithDataCapType(indexer, dataCapCodeOutPoint)
+async function consumeCells(indexer, dataCapCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
@@ -212,15 +212,15 @@ async function main()
 	await indexerReady(indexer);
 
 	// Create a cell that contains the DataCap binary.
-	const dataCapCodeOutPoint = await deployDataCapBinary(indexer);
+	const dataCapCodeOutPoint = await deployCode(indexer);
 	await indexerReady(indexer);
 
 	// Create cells that uses the DataCap binary that was just deployed.
-	await createCellsWithDataCapType(indexer, dataCapCodeOutPoint);
+	await createCells(indexer, dataCapCodeOutPoint);
 	await indexerReady(indexer);
 
 	// Consume the cells locked with the DataCap.
-	await consumeCellsWithDataCapType(indexer, dataCapCodeOutPoint);
+	await consumeCells(indexer, dataCapCodeOutPoint);
 	await indexerReady(indexer);
 
 	console.log("Example completed successfully!");

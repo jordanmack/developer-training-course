@@ -100,8 +100,7 @@ async function createCells(indexer, aggCounterCodeOutPoint)
 			hash_type: "data",
 			args: "0x"
 		};
-		const dataValue1 = amount;
-		const data1 = intToU64LeHexBytes(dataValue1);
+		const data1 = intToU64LeHexBytes(amount);
 		const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: data1};
 		transaction = transaction.update("outputs", (i)=>i.push(output1));
 	}

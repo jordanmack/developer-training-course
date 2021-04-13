@@ -144,7 +144,7 @@ async function validateLabDeploy(skeleton)
 		throw new Error("This lab requires at least one input Cell.");
 
 	if(tx.outputs.length != 2)
-		throw new Error("This lab requires two output Cells.");
+		throw new Error("This lab requires two output cells.");
 
 	if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(61n))
 		throw new Error("This lab requires output 0 to have a capacity of 61 CKBytes.");
@@ -171,7 +171,7 @@ async function validateLabConsumption(skeleton)
 	const tx = skeleton.toJS();
 
 	if(tx.inputs.length < 2)
-		throw new Error("This lab requires at least two input Cells.");
+		throw new Error("This lab requires at least two input cells.");
 
 	if(tx.outputs.length != 1)
 		throw new Error("This lab requires exactly one output Cell.");

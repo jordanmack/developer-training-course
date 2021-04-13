@@ -168,7 +168,7 @@ async function validateLab(skeleton)
 	const txFee = 100_000n;
 
 	if(tx.inputs.length < 3)
-		throw new Error("This lab requires at least three input Cells.");
+		throw new Error("This lab requires at least three input cells.");
 
 	if(tx.outputs.length < 1)
 		throw new Error("This lab requires at least one output Cell.");

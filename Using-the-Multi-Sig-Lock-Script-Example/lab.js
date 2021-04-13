@@ -139,10 +139,10 @@ async function validateLab(skeleton)
 	const tx = skeleton.toJS();
 
 	// if(tx.inputs.length < 3)
-	// 	throw new Error("This lab requires at least three input Cells.");
+	// 	throw new Error("This lab requires at least three input cells.");
 
 	// if(tx.outputs.length != 2)
-	// 	throw new Error("This lab requires two output Cells.");
+	// 	throw new Error("This lab requires two output cells.");
 
 	// if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(100n))
 	// 	throw new Error("This lab requires output 0 to have a capacity of 100 CKBytes.")

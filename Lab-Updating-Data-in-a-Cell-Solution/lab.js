@@ -183,10 +183,10 @@ async function validateLab(skeleton)
 	const dataFile2 = "../files/LoremIpsum.txt";
 
 	if(tx.inputs.length < 2)
-		throw new Error("This lab requires at least two input Cells.");
+		throw new Error("This lab requires at least two input cells.");
 
 	if(tx.outputs.length != 3)
-		throw new Error("This lab requires three output Cells.");
+		throw new Error("This lab requires three output cells.");
 
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(dataFile1);
 

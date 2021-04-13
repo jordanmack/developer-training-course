@@ -134,7 +134,7 @@ async function createCells(indexer)
 	console.log("\n");
 }
 
-async function consumeCells(indexer, scriptCodeOutPoint, alwaysSuccessCellOutPoint)
+async function consumeCells(indexer, scriptCodeOutPoint)
 {
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});

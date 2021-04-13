@@ -85,7 +85,7 @@ async function createCells(indexer, scriptCodeOutPoint)
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
-	// Add the cell dep for the lock script.
+	// Add the cell deps.
 	transaction = addDefaultCellDeps(transaction);
 	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
@@ -146,7 +146,7 @@ async function consumeCells(indexer, scriptCodeOutPoint)
 	// Create a transaction skeleton.
 	let transaction = TransactionSkeleton({cellProvider: indexer});
 
-	// Add the cell dep for the lock script.
+	// Add the cell deps.
 	transaction = addDefaultCellDeps(transaction);
 	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));

@@ -3,10 +3,10 @@
 const {utils} = require("@ckb-lumos/base");
 const {ckbHash} = utils;
 const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, sealTransaction, TransactionSkeleton} = require("@ckb-lumos/helpers");
+const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
 const {CellCollector} = require("@ckb-lumos/indexer");
 const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, indexerReady, initializeLumosIndexer, readFileToHexString, readFileToHexStringSync, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU64LeHexBytes, stringToHex} = require("../lib/util.js");
+const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU32LeHexBytes, stringToHex} = require("../lib/util.js");
 const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
 
 // Nervos CKB Development Blockchain URL.
@@ -96,7 +96,7 @@ async function createCells(indexer, dataCapCodeOutPoint)
 	{
 		const outputCapacity1 = ckbytesToShannons(500n);
 		const lockScript1 = addressToScript(address1);
-		const dataCapSize1 = intToU64LeHexBytes(20);
+		const dataCapSize1 = intToU32LeHexBytes(20);
 		const typeScript1 =
 		{
 			code_hash: dataFileHash1,
@@ -157,7 +157,7 @@ async function consumeCells(indexer, dataCapCodeOutPoint)
 
 	// Add the DataCap cells to the transaction. 
 	const lockScript1 = addressToScript(address1);
-    const dataCapSize1 = intToU64LeHexBytes(20);
+    const dataCapSize1 = intToU32LeHexBytes(20);
 	const typeScript1 =
 	{
 		code_hash: dataFileHash1,

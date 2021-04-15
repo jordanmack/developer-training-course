@@ -148,7 +148,6 @@ function signTransaction(transaction, privateKey)
 
 async function validateLab(skeleton, action)
 {
-	return;
 	if(action == "deploy")
 		return;
 	else if(action == "create")

@@ -211,15 +211,15 @@ async function main()
 	await initializeLab(nodeUrl, indexer);
 	await indexerReady(indexer);
 
-	// Create a cell that contains the DataCap binary.
+	// Create a cell that contains the DataRange binary.
 	const scriptCodeOutPoint = await deployCode(indexer);
 	await indexerReady(indexer);
 
-	// Create cells that uses the DataCap binary that was just deployed.
+	// Create cells that uses the DataRange binary that was just deployed.
 	await createCells(indexer, scriptCodeOutPoint);
 	await indexerReady(indexer);
 
-	// Consume the cells locked with the DataCap.
+	// Consume the cells locked with the DataRange.
 	await consumeCells(indexer, scriptCodeOutPoint);
 	await indexerReady(indexer);
 

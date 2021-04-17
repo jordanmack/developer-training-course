@@ -166,7 +166,7 @@ async function validateLabCreate(skeleton)
 		throw new Error("This lab requires one input cell.");
 
 	if(tx.outputs.length !== 2)
-		throw new Error("This lab requires four output cells.");
+		throw new Error("This lab requires two output cells.");
 
 	for(let i = 0; i < 1; i++)
 	{

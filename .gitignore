@@ -118,3 +118,4 @@ dist
 # Nervos CKB Indexer Data
 indexer-data/
 files/doublecounter
+files/sudt

@@ -294,9 +294,6 @@ async function main()
 	// Start the Lumos Indexer and wait until it is fully synchronized.
 	const indexer = await initializeLumosIndexer(nodeUrl);
 
-	while(true)
-	{
-
 	// Initialize our lab.
 	await initializeLab(nodeUrl, indexer);
 	await indexerReady(indexer);
@@ -316,8 +313,6 @@ async function main()
 	// Burn token cells created in the last transaction.
 	await consumeCells(indexer, scriptCodeOutPoint);
 	await indexerReady(indexer);
-
-	}
 
 	console.log("Exercise completed successfully!");
 }

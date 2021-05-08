@@ -233,6 +233,59 @@ async function transferCells(indexer, scriptCodeOutPoint)
 	console.log("\n");
 }
 
+async function consumeCells(indexer, scriptCodeOutPoint)
+{
+	// Create a transaction skeleton.
+	let transaction = TransactionSkeleton({cellProvider: indexer});
+
+	// Add the cell deps.
+	transaction = addDefaultCellDeps(transaction);
+	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
+	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
+
+	// Add Alice's token cells to the transaction.
+	const lockScriptHashAlice = computeScriptHash(addressToScript(ALICE_ADDRESS));
+	const typeScript1 =
+	{
+		code_hash: dataFileHash1,
+		hash_type: "data",
+		args: lockScriptHashAlice
+	};
+	const query = {lock: addressToScript(ALICE_ADDRESS), type: typeScript1};
+	const cellCollector = new CellCollector(indexer, query);
+	for await (const cell of cellCollector.collect())
+		transaction = transaction.update("inputs", (i)=>i.push(cell));
+
+	// Determine the capacity of the input and output cells.
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+
+	// Create a change Cell for the remaining CKBytes.
+	const changeCapacity = intToHex(inputCapacity - outputCapacity - txFee);
+	const change2 = {cell_output: {capacity: changeCapacity, lock: addressToScript(ALICE_ADDRESS), type: null}, data: "0x"};
+	transaction = transaction.update("outputs", (i)=>i.push(change2));
+
+	// Add in the witness placeholders.
+	transaction = addDefaultWitnessPlaceholders(transaction);
+
+	// Print the details of the transaction to the console.
+	describeTransaction(transaction.toJS());
+
+	// Validate the transaction against the lab requirements.
+	await validateLab(transaction, "consume");
+
+	// Sign the transaction.
+	const signedTx = signTransaction(transaction, ALICE_PRIVATE_KEY);
+
+	// Send the transaction to the RPC node.
+	const txid = await sendTransaction(nodeUrl, signedTx);
+	console.log(`Transaction Sent: ${txid}\n`);
+
+	// Wait for the transaction to confirm.
+	await waitForTransactionConfirmation(nodeUrl, txid);
+	console.log("\n");
+}
+
 async function main()
 {
 	// Initialize the Lumos configuration which is held in config.json.
@@ -258,6 +311,10 @@ async function main()
 
 	// Transfer the cells created in the last transaction.
 	await transferCells(indexer, scriptCodeOutPoint);
+	await indexerReady(indexer);
+
+	// Burn token cells created in the last transaction.
+	await consumeCells(indexer, scriptCodeOutPoint);
 	await indexerReady(indexer);
 
 	}

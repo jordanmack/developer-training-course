@@ -8,14 +8,14 @@ const {addressToScript, scriptToAddress} = require("@ckb-lumos/helpers");
 const {hexToUint8Array, uint8ArrayToHex} = require("../lib/util.js");
 
 // We initialize Lumos so it ready when we need to use some of its features.
-initializeConfig();
+initializeConfig(config);
 
 // This is the private key for the first genesis account on the local development blockchain.
-const privateKey = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
-console.log(`Private Key:\t${privateKey} (32 bytes)`);
+const PRIVATE_KEY = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
+console.log(`Private Key:\t${PRIVATE_KEY} (32 bytes)`);
 
 // This is the corresponding public key that is generated from the private key.
-const publicKey = uint8ArrayToHex(secp256k1.publicKeyCreate(hexToUint8Array(privateKey)));
+const publicKey = uint8ArrayToHex(secp256k1.publicKeyCreate(hexToUint8Array(PRIVATE_KEY)));
 console.log(`Public Key:\t${publicKey} (33 bytes)`);
 
 // This is the lock arg which is generated from the public key.
@@ -42,5 +42,5 @@ const lockHash = computeScriptHash(lockScript);
 console.log(`Lock Hash:\t${lockHash} (32 bytes)`);
 
 // This is the testnet address which is computed from the lock script. In a production environment, this function would automatically generate a Mainnet address.
-const address = scriptToAddress(lockScript);
+const ADDRESS = scriptToAddress(lockScript);
 console.log(`Address:\t${address} (Testnet)`);

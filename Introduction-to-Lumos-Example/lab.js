@@ -15,7 +15,7 @@ function describeTransaction(transaction)
 	return libDescribeTransaction(transaction, options);
 }
 
-async function initializeLab(nodeUrl, indexer)
+async function initializeLab(NODE_URL, indexer)
 {
 	// Nothing to do in this lab.
 }

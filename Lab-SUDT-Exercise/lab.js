@@ -5,7 +5,7 @@ const {computeScriptHash} = utils;
 const {ScriptValue} = values;
 const {addressToScript} = require("@ckb-lumos/helpers");
 const {TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {CellCollector} = require("@ckb-lumos/indexer");
+const {CellCollector} = require("@ckb-lumos/ckb-indexer");
 const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
 const {sealTransaction} = require("@ckb-lumos/helpers");
 const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, describeTransaction: libDescribeTransaction, getLiveCell, indexerReady, readFileToHexString, sendTransaction, signMessage, signTransaction, waitForConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
@@ -19,14 +19,14 @@ const BOB_ADDRESS = "ckt1qyq9gstman8qyjv0ucwqnw0h6z5cn6z9xxlssmqc92";
 const CHARLIE_PRIVATE_KEY = "0xdb159ba4ba1ec8abdb7e9f570c7a1a1febf05eeb3f5d6ebdd50ee3bde7740189";
 const CHARLIE_ADDRESS = "ckt1qyq9sz6wanl8v3tdmq6as38yq3j9hwg637kqu3e2xn";
 const DANIEL_PRIVATE_KEY = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
-const DANIEL_ADDRESS = "ckt1qyqf3z5u8e6vp8dtwmywg82grfclf5mdwuhsggxz4e";
+const DANIEL_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqvc32wruaxqnk4hdj8yr4yp5u056dkhwtc94sy8q";
 
 // Genesis account used for funding.
 const GENESIS_PRIVATE_KEY = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
-const GENESIS_ADDRESS = "ckt1qyqvsv5240xeh85wvnau2eky8pwrhh4jr8ts8vyj37";	
+const GENESIS_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqwgx292hnvmn68xf779vmzrshpmm6epn4c0cgwga";	
 
 // This is the SUDT RISC-V binary.
-const dataFile = "../files/sudt";
+const DATA_FILE = "../files/sudt";
 
 function describeTransaction(transaction)
 {
@@ -45,31 +45,31 @@ function describeTransaction(transaction)
 	return libDescribeTransaction(transaction, options);
 }
 
-async function initializeLab(nodeUrl, indexer)
+async function initializeLab(NODE_URL, indexer)
 {
 	// Setup the Cells for the lab.
-	await setupCells(nodeUrl, indexer);
+	await setupCells(NODE_URL, indexer);
 }
 
-async function deployCode(nodeUrl, indexer)
+async function deployCode(NODE_URL, indexer)
 {
 	// Constants
-	const txFee = 100_000n;
+	const TX_FEE = 100_000n;
 
 	// Create a transaction skeleton.
-	let transaction = TransactionSkeleton({cellProvider: indexer});
+	let transaction = TransactionSkeleton();
 
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
 
 	// Create a cell with data from the specified file.
-	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(dataFile);
+	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE);
 	const outputCapacity1 = ckbytesToShannons(61n) + ckbytesToShannons(dataSize1);
 	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(ALICE_ADDRESS), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
-	const collectedCells = await collectCapacity(indexer, addressToScript(GENESIS_ADDRESS), outputCapacity1 + ckbytesToShannons(61n) + txFee);
+	const collectedCells = await collectCapacity(indexer, addressToScript(GENESIS_ADDRESS), outputCapacity1 + ckbytesToShannons(61n) + TX_FEE);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
@@ -77,7 +77,7 @@ async function deployCode(nodeUrl, indexer)
 	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
-	const changeCapacity = intToHex(inputCapacity - outputCapacity - txFee);
+	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
 	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(GENESIS_ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
@@ -92,12 +92,12 @@ async function deployCode(nodeUrl, indexer)
 
 	// Send the transaction to the RPC node.
 	// process.stdout.write("Setup Transaction Sent: ");
-	const txid = await sendTransaction(nodeUrl, signedTx);
+	const txid = await sendTransaction(NODE_URL, signedTx);
 	// process.stdout.write(txid);
 
 	// Wait for the transaction to confirm.
 	// process.stdout.write("Now setting up Cells for lab exercise. Please wait.");
-	await waitForConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {recheckMs: 1_000});
+	await waitForConfirmation(NODE_URL, txid, (_status)=>process.stdout.write("."), {recheckMs: 1_000});
 	// console.log("\n");
 
 	// Return the out point for the binary so it can be used in the next transaction.
@@ -110,12 +110,12 @@ async function deployCode(nodeUrl, indexer)
 	return outPoint;
 }
 
-async function setupCells(nodeUrl, indexer)
+async function setupCells(NODE_URL, indexer)
 {
 	process.stdout.write("Now setting up Cells for lab exercise. Please wait.");
 
 	// Deploy the SUDT binary to guarantee it can be used as a dependency.
-	const scriptCodeOutPoint = await deployCode(nodeUrl, indexer);
+	const scriptCodeOutPoint = await deployCode(NODE_URL, indexer);
 	await indexerReady(indexer);
 
 	// Genesis account.
@@ -123,18 +123,18 @@ async function setupCells(nodeUrl, indexer)
 	const fundingAccountAddress = GENESIS_ADDRESS;	
 
 	// Accounts to recycle any existing cells.
-	const accountsToRecycle = [{address: ALICE_ADDRESS, privateKey: ALICE_PRIVATE_KEY}, {address: BOB_ADDRESS, privateKey: BOB_PRIVATE_KEY}, {address: CHARLIE_ADDRESS, privateKey: CHARLIE_PRIVATE_KEY}, {address: DANIEL_ADDRESS, privateKey: DANIEL_PRIVATE_KEY}];
+	const accountsToRecycle = [{address: ALICE_ADDRESS, PRIVATE_KEY: ALICE_PRIVATE_KEY}, {address: BOB_ADDRESS, PRIVATE_KEY: BOB_PRIVATE_KEY}, {address: CHARLIE_ADDRESS, PRIVATE_KEY: CHARLIE_PRIVATE_KEY}, {address: DANIEL_ADDRESS, PRIVATE_KEY: DANIEL_PRIVATE_KEY}];
 
 	// Accounts to fund.
-	const accountsToFund = [{address: ALICE_ADDRESS, privateKey: ALICE_PRIVATE_KEY}];
+	const accountsToFund = [{address: ALICE_ADDRESS, PRIVATE_KEY: ALICE_PRIVATE_KEY}];
 	const amountToFund = ckbytesToShannons(10_000n);
 	const numberOfFundCells = 10;
 
 	// Transaction Fee
-	const txFee = 100_000n;
+	const TX_FEE = 100_000n;
 
 	// Initialize a Lumos instance.
-	let transaction = TransactionSkeleton({cellProvider: indexer});
+	let transaction = TransactionSkeleton();
 	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
@@ -189,7 +189,7 @@ async function setupCells(nodeUrl, indexer)
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
-	const changeCapacity = intToHex(inputCapacity - outputCapacity - txFee);
+	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
 	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(fundingAccountAddress), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
@@ -210,7 +210,7 @@ async function setupCells(nodeUrl, indexer)
 		const addressIndex = index + 1;
 		if(addressesUsed.has(addressIndex))
 		{
-			const signature = signMessage(account.privateKey, signingEntries[signatures.length].message);
+			const signature = signMessage(account.PRIVATE_KEY, signingEntries[signatures.length].message);
 			signatures.push(signature);
 		} 
 	});
@@ -227,12 +227,13 @@ async function setupCells(nodeUrl, indexer)
 
 	// Send the transaction to the RPC node.
 	// process.stdout.write("Setup Transaction Sent: ");
-	const txid = await sendTransaction(nodeUrl, signedTx);
+	const txid = await sendTransaction(NODE_URL, signedTx);
 	// process.stdout.write(txid);
 
 	// Wait for the transaction to confirm.
 	// process.stdout.write("Now setting up Cells for lab exercise. Please wait.");
-	await waitForConfirmation(nodeUrl, txid, (_status)=>process.stdout.write("."), {recheckMs: 1_000});
+	await waitForConfirmation(NODE_URL, txid, (_status)=>process.stdout.write("."), {recheckMs: 1_000});
+	await indexerReady(indexer, (_indexerTip, _rpcTip)=>process.stdout.write("."));
 	console.log("\n");
 }
 
@@ -298,13 +299,13 @@ async function validateLabCreate(skeleton)
 
 	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const txFee = inputCapacity - outputCapacity;
+	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
 		throw new Error("More capacity is required by the outputs than is available in the inputs.");
 
-	if(txFee > ckbytesToShannons(1))
-		throw new Error(`The TX Fee provided is too large: ${formattedNumber(txFee)} Shannons.`);
+	if(TX_FEE > ckbytesToShannons(1))
+		throw new Error(`The TX Fee provided is too large: ${formattedNumber(TX_FEE)} Shannons.`);
 }
 
 async function validateLabTransfer(skeleton)
@@ -399,13 +400,13 @@ async function validateLabTransfer(skeleton)
 
 	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const txFee = inputCapacity - outputCapacity;
+	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
 		throw new Error("More capacity is required by the outputs than is available in the inputs.");
 
-	if(txFee > ckbytesToShannons(1))
-		throw new Error(`The TX Fee provided is too large: ${formattedNumber(txFee)} Shannons.`);
+	if(TX_FEE > ckbytesToShannons(1))
+		throw new Error(`The TX Fee provided is too large: ${formattedNumber(TX_FEE)} Shannons.`);
 }
 
 async function validateLabConsume(skeleton)
@@ -442,13 +443,13 @@ async function validateLabConsume(skeleton)
 
 	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
 	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const txFee = inputCapacity - outputCapacity;
+	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
 		throw new Error("More capacity is required by the outputs than is available in the inputs.");
 
-	if(txFee > ckbytesToShannons(1))
-		throw new Error(`The TX Fee provided is too large: ${formattedNumber(txFee)} Shannons.`);
+	if(TX_FEE > ckbytesToShannons(1))
+		throw new Error(`The TX Fee provided is too large: ${formattedNumber(TX_FEE)} Shannons.`);
 }
 
 module.exports =

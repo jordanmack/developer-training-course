@@ -1,18 +1,22 @@
 "use strict";
 
-const {core, utils} = require("@ckb-lumos/base");
+import fs from "fs";
+import {blockchain, utils} from "@ckb-lumos/base";
 const {ckbHash} = utils;
-const {secp256k1Blake160Multisig} = require("@ckb-lumos/common-scripts");
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {normalizers} = require("ckb-js-toolkit");
-const {addressToScript, locateCellDep, TransactionSkeleton, sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, sendTransaction, signMessage, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady} = require("../lib/index.js");
-const {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
+import {bytes} from "@ckb-lumos/codec"
+import {secp256k1Blake160Multisig} from "@ckb-lumos/common-scripts";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {normalizers} from "ckb-js-toolkit";
+import {addressToScript, locateCellDep, TransactionSkeleton, sealTransaction} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, sendTransaction, signMessage, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH} from "../lib/index.js";
+import {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const PRIVATE_KEY_1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
@@ -50,14 +54,14 @@ async function createMultisigCell(indexer)
 		+ multisigThreshold.toString(16).padStart(2, "0")
 		+ multisigPublicKeys.toString(16).padStart(2, "0")
 		+ multisigAddresses.map((ADDRESS)=>addressToScript(ADDRESS).args.substr(2)).join("");
-	const multisigHash = ckbHash(hexToArrayBuffer(multisigScript)).serializeJson().substr(0, 42);
+	const multisigHash = ckbHash(hexToArrayBuffer(multisigScript)).substr(0, 42);
 	const lockScript1 =
 	{
-		code_hash: MULTISIG_LOCK_HASH,
-		hash_type: "type",
+		codeHash: MULTISIG_LOCK_HASH,
+		hashType: "type",
 		args: multisigHash
 	};
-	const output1 = {cell_output: {capacity: outputCapacity1, lock: lockScript1, type: null}, data: "0x"};
+	const output1 = {cellOutput: {capacity: outputCapacity1, lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add capacity to the transaction.
@@ -66,12 +70,12 @@ async function createMultisigCell(indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));
 
 	// Get the capacity sums of the inputs and outputs.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	const output2 = {cellOutput: {capacity: outputCapacity2, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output2));	
 
 	// Add in the witness placeholders.
@@ -94,7 +98,7 @@ async function createMultisigCell(indexer)
 	await waitForTransactionConfirmation(NODE_URL, txid);
 	console.log("\n");
 
-	return {tx_hash: txid, index: "0x0"};
+	return {txHash: txid, index: "0x0"};
 }
 
 // Consumes the cell with the multi-sig lock and sends the capacity to ADDRESS_1.
@@ -104,18 +108,18 @@ async function consumeMultisigCell(indexer, multisigCellOutPoint)
 	let transaction = TransactionSkeleton();
 
 	// Add the cell dep for the lock script.
-	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: MULTISIG_LOCK_HASH, hash_type: "type"})));
+	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({codeHash: MULTISIG_LOCK_HASH, hashType: "type"})));
 
 	// Add the input cell to the transaction.
 	const input = await getLiveCell(NODE_URL, multisigCellOutPoint);
 	transaction = transaction.update("inputs", (i)=>i.push(input));
 
 	// Get the capacity sums of the inputs.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(inputCapacity - TX_FEE);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	const output2 = {cellOutput: {capacity: outputCapacity2, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output2));	
 
 	// Add in the witness placeholders.
@@ -126,7 +130,7 @@ async function consumeMultisigCell(indexer, multisigCellOutPoint)
 		+ multisigPublicKeys.toString(16).padStart(2, "0")
 		+ multisigAddresses.map((ADDRESS)=>addressToScript(ADDRESS).args.substr(2)).join("");
 	const multisigPlaceholder = multisigScript + "0".repeat(130).repeat(multisigThreshold);
-	const witness = arrayBufferToHex(core.SerializeWitnessArgs(normalizers.NormalizeWitnessArgs({lock: multisigPlaceholder})));
+	const witness = bytes.hexify(blockchain.WitnessArgs.pack({lock: multisigPlaceholder}));
 	transaction = transaction.update("witnesses", (w)=>w.push(witness));
 
 	// Sign the transaction.
@@ -154,7 +158,7 @@ async function consumeMultisigCell(indexer, multisigCellOutPoint)
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

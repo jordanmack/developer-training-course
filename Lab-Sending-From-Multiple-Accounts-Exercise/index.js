@@ -1,15 +1,18 @@
 "use strict";
 
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton, sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, signMessage, addDefaultWitnessPlaceholders, collectCapacity, indexerReady, sendTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
+import fs from "fs";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton, sealTransaction} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, signMessage, addDefaultWitnessPlaceholders, collectCapacity, indexerReady, sendTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+import {secp256k1Blake160} from "@ckb-lumos/common-scripts";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // These are the private keys and accounts to use with this lab.
 const ALICE_PRIVATE_KEY = "0x81dabf8f74553c07999e1400a8ecc4abc44ef81c9466e6037bd36e4ad1631c17";
@@ -26,7 +29,7 @@ const TX_FEE = ???;
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

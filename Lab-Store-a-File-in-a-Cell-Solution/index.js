@@ -1,18 +1,18 @@
 "use strict";
 
-const fs = require("fs");
-const util = require("util");
-const {Indexer} = require("@ckb-lumos/ckb-indexer"); 
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const config = require("../config.json");
+import fs from "fs";
+import util from "util";
+import {Indexer} from "@ckb-lumos/ckb-indexer"; 
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, sendTransaction, signTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, hexToInt, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const PRIVATE_KEY = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
@@ -34,7 +34,7 @@ async function readFile(filename)
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);
@@ -52,7 +52,7 @@ async function main()
 	const hexString = "0x" + (await readFile(DATA_FILE)).toString("hex");
 	const dataSize = ((hexString.length - 2) / 2);
 	const outputCapacity1 = intToHex(ckbytesToShannons(61n) + ckbytesToShannons(dataSize));
-	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(ADDRESS), type: null}, data: hexString};
+	const output1 = {cellOutput: {capacity: outputCapacity1, lock: addressToScript(ADDRESS), type: null}, data: hexString};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add capacity to the transaction.
@@ -61,12 +61,12 @@ async function main()
 	transaction = transaction.update("inputs", (i)=>i.concat(inputCells));
 
 	// Get the capacity sums of the inputs and outputs.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const outputCapacity2 = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
+	const output2 = {cellOutput: {capacity: outputCapacity2, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output2));	
 
 	// Add in the witness placeholders.

@@ -1,16 +1,17 @@
 "use strict";
 
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {CellCollector, Indexer} = require("@ckb-lumos/ckb-indexer");
-const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, readFileToHexString, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const config = require("../config.json");
+import fs from "fs";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {CellCollector, Indexer} from "@ckb-lumos/ckb-indexer";
+import {addressToScript, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, readFileToHexString, sendTransaction, signTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, hexToInt, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const PRIVATE_KEY_1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
@@ -27,7 +28,7 @@ const TX_FEE = 100_000n;
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);
@@ -56,13 +57,13 @@ async function main()
 	{
 		const {hexString} = await readFileToHexString(DATA_FILE);
 		const outputCapacity = intToHex(ckbytesToShannons(61n) + ckbytesToShannons((hexString.length - 2) / 2));
-		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: hexString};
+		const output = {cellOutput: {capacity: outputCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: hexString};
 		transaction = transaction.update("outputs", (i)=>i.push(output));
 	}
 
 	// Calculate the capacity sum of the inputs and outputs.
-	let inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	let outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	let inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	let outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input cells to the transaction to use for capacity, if needed.
 	let capacityRequired = outputCapacity - inputCapacity + TX_FEE; // (output1 + output2) - (input1 + input2) + tx fee
@@ -74,13 +75,13 @@ async function main()
 	}
 
 	// Recalculate the capacity sum of the inputs and outputs.
-	inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes, if needed.
 	if(inputCapacity - outputCapacity - TX_FEE > 0n)
 	{
 		const changeCellCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-		const output2 = {cell_output: {capacity: changeCellCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+		const output2 = {cellOutput: {capacity: changeCellCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 		transaction = transaction.update("outputs", (i)=>i.push(output2));
 	}
 

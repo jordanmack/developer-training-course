@@ -1,29 +1,32 @@
 "use strict";
 
-const secp256r1 = require("secp256r1");
-const {utils} = require("@ckb-lumos/base");
+import fs from "fs";
+import secp256r1 from "secp256r1";
+import {utils} from "@ckb-lumos/base";
 const {ckbHash} = utils;
-const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, sealTransaction, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {Reader} = require("ckb-js-toolkit");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
+import {secp256k1Blake160} from "@ckb-lumos/common-scripts";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, sealTransaction, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {Reader} from "ckb-js-toolkit";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {arrayBufferToHex, ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const PRIVATE_KEY_1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
 const ADDRESS_1 = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqvc32wruaxqnk4hdj8yr4yp5u056dkhwtc94sy8q";
 const secp256r1PublicKey1 = arrayBufferToHex(new Uint8Array(secp256r1.publicKeyCreate(Buffer.from(hexToArrayBuffer(PRIVATE_KEY_1)))).buffer);
-const secp256r1LockArg1 = ckbHash(hexToArrayBuffer(secp256r1PublicKey1)).serializeJson().substr(0, 42);
+const secp256r1LockArg1 = ckbHash(hexToArrayBuffer(secp256r1PublicKey1)).substr(0, 42);
 
 // This is the always success RISC-V binary.
 const DATA_FILE_1 = "../files/secp256r1";
-const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)).serializeJson(); // Blake2b hash of the always success binary.
+const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)); // Blake2b hash of the always success binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const TX_FEE = 200_000n;
@@ -32,7 +35,7 @@ function prepareSigningEntries(transaction, config)
 {
 	let processedArgs = Set();
 	const tx = createTransactionFromSkeleton(transaction);
-	const txHash = ckbHash(core.SerializeRawTransaction(normalizers.NormalizeRawTransaction(tx))).serializeJson();
+	const txHash = ckbHash(core.SerializeRawTransaction(normalizers.NormalizeRawTransaction(tx)));
 	const inputs = transaction.get("inputs");
 	const witnesses = transaction.get("witnesses");
 	let signingEntries = transaction.get("signingEntries");
@@ -41,12 +44,12 @@ function prepareSigningEntries(transaction, config)
 	{
 		const input = inputs.get(i);
 		if (
-		template.CODE_HASH === input.cell_output.lock.code_hash &&
-		template.HASH_TYPE === input.cell_output.lock.hash_type &&
-		!processedArgs.has(input.cell_output.lock.args)
+		template.CODE_HASH === input.cellOutput.lock.code_hash &&
+		template.HASH_TYPE === input.cellOutput.lock.hash_type &&
+		!processedArgs.has(input.cellOutput.lock.args)
 		) {
-		processedArgs = processedArgs.add(input.cell_output.lock.args);
-		const lockValue = new values.ScriptValue(input.cell_output.lock, {
+		processedArgs = processedArgs.add(input.cellOutput.lock.args);
+		const lockValue = new values.ScriptValue(input.cellOutput.lock, {
 			validate: false,
 		});
 		const hasher = new CKBHasher();
@@ -56,21 +59,21 @@ function prepareSigningEntries(transaction, config)
 			`The first witness in the script group starting at input index ${i} does not exist, maybe some other part has invalidly tampered the transaction?`
 			);
 		}
-		hashWitness(hasher, witnesses.get(i)!);
+		hashWitness(hasher, witnesses.get(i));
 		for (let j = i + 1; j < inputs.size && j < witnesses.size; j++) {
-			const otherInput = inputs.get(j)!;
+			const otherInput = inputs.get(j);
 			if (
 			lockValue.equals(
-				new values.ScriptValue(otherInput.cell_output.lock, {
+				new values.ScriptValue(otherInput.cellOutput.lock, {
 				validate: false,
 				})
 			)
 			) {
-			hashWitness(hasher, witnesses.get(j)!);
+			hashWitness(hasher, witnesses.get(j));
 			}
 		}
 		for (let j = inputs.size; j < witnesses.size; j++) {
-			hashWitness(hasher, witnesses.get(j)!);
+			hashWitness(hasher, witnesses.get(j));
 		}
 		const signingEntry = {
 			type: "witness_args_lock",
@@ -96,7 +99,7 @@ function signMessage(PRIVATE_KEY, message)
 	return new Reader(array.buffer).serializeJson();
 }
 
-function signTransaction(transaction, PRIVATE_KEY)
+export function signTransaction(transaction, PRIVATE_KEY)
 {
 	// Sign the transaction with our private key.
 	transaction = secp256k1Blake160.prepareSigningEntries(transaction);
@@ -118,7 +121,7 @@ async function deploySecp256r1Binary(indexer)
 	// Create a cell with data from the specified file.
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE_1);
 	const outputCapacity1 = ckbytesToShannons(61n) + ckbytesToShannons(dataSize1);
-	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(ADDRESS_1), type: null}, data: hexString1};
+	const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: addressToScript(ADDRESS_1), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
@@ -126,12 +129,12 @@ async function deploySecp256r1Binary(indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -157,7 +160,7 @@ async function deploySecp256r1Binary(indexer)
 	// Return the out point for the always success binary so it can be used in the next transaction.
 	const outPoint =
 	{
-		tx_hash: txid,
+		txHash: txid,
 		index: "0x0"
 	};
 
@@ -176,11 +179,11 @@ async function createCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint)
 	const outputCapacity1 = ckbytesToShannons(61n);
 	const lockScript1 =
 	{
-		code_hash: DATA_FILE_HASH_1,
-		hash_type: "data",
+		codeHash: DATA_FILE_HASH_1,
+		hashType: "data1",
 		args: secp256r1LockArg1
 	}
-	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
+	const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
@@ -189,12 +192,12 @@ async function createCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -220,7 +223,7 @@ async function createCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint)
 	// Return the out point for the cell locked with the always success lock so it can be used in the next transaction.
 	const outPoint =
 	{
-		tx_hash: txid,
+		txHash: txid,
 		index: "0x0"
 	};
 
@@ -234,7 +237,7 @@ async function consumeCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint, 
 
 	// Add the cell dep for the lock script.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: alwaysSuccessCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: alwaysSuccessCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Add the always success cell to the transaction.
@@ -247,12 +250,12 @@ async function consumeCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint, 
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -279,7 +282,7 @@ async function consumeCellWithSecp256r1Lock(indexer, alwaysSuccessCodeOutPoint, 
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

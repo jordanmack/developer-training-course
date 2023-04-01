@@ -1,8 +1,8 @@
 "use strict";
 
-const {describeTransaction: libDescribeTransaction} = require("../lib/index.js");
+import {describeTransaction as libDescribeTransaction} from "../lib/index.js";
 
-function describeTransaction(transaction)
+export function describeTransaction(transaction)
 {
 	const options =
 	{
@@ -15,18 +15,17 @@ function describeTransaction(transaction)
 	return libDescribeTransaction(transaction, options);
 }
 
-async function initializeLab(NODE_URL, indexer)
+export async function initializeLab(NODE_URL, indexer)
 {
 	// Nothing to do in this lab.
 }
 
-async function validateLab(transaction)
+export async function validateLab(transaction)
 {
 	// Nothing to do in this lab.
 }
 
-module.exports =
-{
+export default {
 	describeTransaction,
 	initializeLab,
 	validateLab

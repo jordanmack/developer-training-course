@@ -1,20 +1,23 @@
 "use strict";
 
-const {core,utils} = require("@ckb-lumos/base");
+import fs from "fs";
+import {utils} from "@ckb-lumos/base";
 const {ckbHash} = utils;
-const {secp256k1Blake160Multisig, secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton, locateCellDep, sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, sendTransaction, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady, getLiveCell, signMessage} = require("../lib/index.js");
-const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, arrayBufferToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLabDeploy, validateLabConsumption} = require("./lab.js");
-const {normalizers} = require("ckb-js-toolkit");
+import {secp256k1Blake160Multisig, secp256k1Blake160} from "@ckb-lumos/common-scripts";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton, locateCellDep, sealTransaction} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, sendTransaction, signTransaction, waitForTransactionConfirmation, MULTISIG_LOCK_HASH, indexerReady, getLiveCell, signMessage} from "../lib/index.js";
+import {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, arrayBufferToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLabDeploy, validateLabConsumption} from "./lab.js";
+import {normalizers} from "ckb-js-toolkit";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 const SECP_SIGNATURE_PLACEHOLDER_DEFAULT = "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // These are the accounts which will be used.
 const PRIVATE_KEY_1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
@@ -25,11 +28,11 @@ const PRIVATE_KEY3 = "0x81dabf8f74553c07999e1400a8ecc4abc44ef81c9466e6037bd36e4a
 const address3 = "ckt1qyq2a6ymy7fjntsc2q0jajnmljt690g4xpdsyw4k5f";
 
 // Multi-Sig configuration.
-const multisigAddresses = ?;
-const multisigReserved = ?;
-const multisigMustMatch = ?;
-const multisigThreshold = ?;
-const multisigPublicKeys = ?;
+const multisigAddresses = ???;
+const multisigReserved = ???;
+const multisigMustMatch = ???;
+const multisigThreshold = ???;
+const multisigPublicKeys = ???;
 
 // This is the TX fee amount that will be paid in Shannons.
 const TX_FEE = 100_000n;
@@ -70,8 +73,8 @@ async function createMultiSigCell(indexer)
 	console.log("\n");
 
 	const outPoints = [
-		{tx_hash: txid, index: "0x0"},
-		{tx_hash: txid, index: "0x1"}
+		{txHash: txid, index: "0x0"},
+		{txHash: txid, index: "0x1"}
 	];
 
 	return outPoints;
@@ -111,7 +114,7 @@ async function consumeMultiSigCell(indexer, deployOutPoints) {
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

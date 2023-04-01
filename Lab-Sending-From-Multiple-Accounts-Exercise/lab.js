@@ -1,13 +1,13 @@
 "use strict";
 
-const {addressToScript} = require("@ckb-lumos/helpers");
-const {locateCellDep, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {CellCollector} = require("@ckb-lumos/ckb-indexer");
-const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultWitnessPlaceholders, collectCapacity, describeTransaction: libDescribeTransaction, getLiveCell, indexerReady, sendTransaction, signMessage, waitForConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
-const {isEqual} = require("lodash");
+import {addressToScript} from "@ckb-lumos/helpers";
+import {locateCellDep, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {CellCollector} from "@ckb-lumos/ckb-indexer";
+import {secp256k1Blake160} from "@ckb-lumos/common-scripts";
+import {sealTransaction} from "@ckb-lumos/helpers";
+import {addDefaultWitnessPlaceholders, collectCapacity, describeTransaction as libDescribeTransaction, getLiveCell, indexerReady, sendTransaction, signMessage, waitForConfirmation, DEFAULT_LOCK_HASH} from "../lib/index.js";
+import {ckbytesToShannons, hexToInt, intToHex} from "../lib/util.js";
+import isEqual from "lodash";
 
 // These are the private keys and accounts to use with this lab.
 const ALICE_PRIVATE_KEY = "0x81dabf8f74553c07999e1400a8ecc4abc44ef81c9466e6037bd36e4ad1631c17";
@@ -23,7 +23,7 @@ const DANIEL_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xw
 const GENESIS_PRIVATE_KEY = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
 const GENESIS_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqwgx292hnvmn68xf779vmzrshpmm6epn4c0cgwga";	
 
-function describeTransaction(transaction)
+export function describeTransaction(transaction)
 {
 	const options =
 	{
@@ -40,7 +40,7 @@ function describeTransaction(transaction)
 	return libDescribeTransaction(transaction, options);
 }
 
-async function initializeLab(NODE_URL, indexer)
+export async function initializeLab(NODE_URL, indexer)
 {
 	// Genesis account.
 	const fundingAccountPrivateKey = GENESIS_PRIVATE_KEY;
@@ -77,7 +77,7 @@ async function initializeLab(NODE_URL, indexer)
 		transaction = transaction.update("inputs", (i)=>i.concat(recycleCells));
 
 		// Determine the capacity from recycled Cells.
-		const recycledCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+		const recycledCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 		totalRecycledCapacity += recycledCapacity;
 	}	
 
@@ -85,12 +85,12 @@ async function initializeLab(NODE_URL, indexer)
 	for (const account of accountsToFund)
 	{
 		const outputCapacity = intToHex(amountToFund);
-		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(account.address), type: null}, data: "0x"};
+		const output = {cellOutput: {capacity: outputCapacity, lock: addressToScript(account.address), type: null}, data: "0x"};
 		transaction = transaction.update("outputs", (i)=>i.push(output));
 	}
 
 	// Get the sum of the outputs.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input capacity cells to the transaction.
 	if(outputCapacity - totalRecycledCapacity + ckbytesToShannons(61n) > 0) // Only add if there isn't enough recycled capacity.
@@ -101,18 +101,18 @@ async function initializeLab(NODE_URL, indexer)
 	}
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(fundingAccountAddress), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(fundingAccountAddress), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
 	transaction = addDefaultWitnessPlaceholders(transaction);
 
 	// Print the details of the transaction to the console.
-	// describeTransaction(transaction.toJS());
+	describeTransaction(transaction.toJS());
 
 	// Prepare to sign the transaction.
 	transaction = secp256k1Blake160.prepareSigningEntries(transaction);
@@ -158,12 +158,12 @@ async function initializeLumosSkeleton(indexer)
 	let skeleton = TransactionSkeleton();
 
 	// Add the cell dep for the lock script.
-	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
+	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({codeHash: DEFAULT_LOCK_HASH, hashType: "type"})));
 
 	return skeleton;
 }
 
-async function validateLab(skeleton)
+export async function validateLab(skeleton)
 {
 	const tx = skeleton.toJS();
 	const TX_FEE = 100_000n;
@@ -174,11 +174,11 @@ async function validateLab(skeleton)
 	if(tx.outputs.length < 1)
 		throw new Error("This lab requires at least one output Cell.");
 
-	if(hexToInt(tx.outputs[0].cell_output.capacity) !== ckbytesToShannons(300n) - TX_FEE)
+	if(hexToInt(tx.outputs[0].cellOutput.capacity) !== ckbytesToShannons(300n) - TX_FEE)
 		throw new Error("This lab requires output 0 to have a capacity of 300 CKBytes minus transaction fee of 0.001 CKB.")
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	if(outputCapacity > inputCapacity)
 		throw new Error("More capacity is required by the outputs than is available in the inputs.");
@@ -186,29 +186,28 @@ async function validateLab(skeleton)
 	if(TX_FEE !== 100_000n)
 		throw new Error("This lab requires a TX Fee of exactly 0.001 CKBytes.");
 
-	if(!isEqual(tx.outputs[0].cell_output.lock, addressToScript(DANIEL_ADDRESS)))
+	if(!isEqual(tx.outputs[0].cellOutput.lock, addressToScript(DANIEL_ADDRESS)))
 	{
 		throw new Error("This lab requires an output Cell with index 0 to have Daniel default lock.");
 	}
 
-	if(!tx.inputs.find(input => isEqual(input.cell_output.lock, addressToScript(ALICE_ADDRESS))))
+	if(!tx.inputs.find(input => isEqual(input.cellOutput.lock, addressToScript(ALICE_ADDRESS))))
 	{
 		throw new Error("This lab requires an input Cell with Alice default lock.");
 	}
 
-	if(!tx.inputs.find(input => isEqual(input.cell_output.lock, addressToScript(BOB_ADDRESS))))
+	if(!tx.inputs.find(input => isEqual(input.cellOutput.lock, addressToScript(BOB_ADDRESS))))
 	{
 		throw new Error("This lab requires an input Cell with Bob default lock.");
 	}
 
-	if(!tx.inputs.find(input => isEqual(input.cell_output.lock, addressToScript(CHARLIE_ADDRESS))))
+	if(!tx.inputs.find(input => isEqual(input.cellOutput.lock, addressToScript(CHARLIE_ADDRESS))))
 	{
 		throw new Error("This lab requires an input Cell with Charlie default lock.");
 	}
 }
 
-module.exports =
-{
+export default {
 	describeTransaction,
 	getLiveCell,
 	initializeLab,

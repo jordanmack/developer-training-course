@@ -115,7 +115,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Nervos CKB Indexer Data
-indexer-data/
+# Nervos L1 Developer Training Course
+files/aggdoublecounter
 files/doublecounter
 files/sudt

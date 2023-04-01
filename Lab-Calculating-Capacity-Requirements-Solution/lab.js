@@ -1,9 +1,9 @@
 "use strict";
 
-const lib = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt} = require("../lib/util.js");
+import lib from "../lib/index.js";
+import {ckbytesToShannons, hexToInt} from "../lib/util.js";
 
-function describeTransaction(transaction)
+export function describeTransaction(transaction)
 {
 	const options =
 	{
@@ -18,12 +18,12 @@ function describeTransaction(transaction)
 	return lib.describeTransaction(transaction, options);
 }
 
-async function initializeLab()
+export async function initializeLab()
 {
 	// Nothing to do in this lab.
 }
 
-async function validateLab(skeleton)
+export async function validateLab(skeleton)
 {
 	const tx = skeleton.toJS();
 
@@ -33,11 +33,11 @@ async function validateLab(skeleton)
 	if(tx.outputs.length != 2)
 		throw new Error("This lab requires two output cells.");
 
-	if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(1_000n))
+	if(hexToInt(tx.outputs[0].cellOutput.capacity) != ckbytesToShannons(1_000n))
 		throw new Error("This lab requires output 0 to have a capacity of 1,000 CKBytes.")
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
@@ -50,8 +50,7 @@ async function validateLab(skeleton)
 		throw new Error("This lab requires a TX Fee of exactly 0.0001 CKBytes.");
 }
 
-module.exports =
-{
+export default {
 	describeTransaction,
 	initializeLab,
 	validateLab

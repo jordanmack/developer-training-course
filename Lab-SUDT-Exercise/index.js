@@ -1,18 +1,19 @@
 "use strict";
 
-const {utils} = require("@ckb-lumos/base");
+import fs from "fs";
+import {utils} from "@ckb-lumos/base";
 const {ckbHash, computeScriptHash} = utils;
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {CellCollector, Indexer} = require("@ckb-lumos/ckb-indexer");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU128LeHexBytes, u128LeHexBytesToInt} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const config = require("../config.json");
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {CellCollector, Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, signTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU128LeHexBytes, u128LeHexBytesToInt} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // These are the private keys and addresses that will be used in this exercise.
 const ALICE_PRIVATE_KEY = "0x81dabf8f74553c07999e1400a8ecc4abc44ef81c9466e6037bd36e4ad1631c17";
@@ -23,7 +24,7 @@ const DANIEL_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xw
 
 // This is the RISC-V binary.
 const DATA_FILE_1 = "../files/sudt";
-const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)).serializeJson(); // Blake2b hash of the RISC-V binary.
+const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)); // Blake2b hash of the RISC-V binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const TX_FEE = 100_000n;
@@ -39,7 +40,7 @@ async function deployCode(indexer)
 	// Create a cell with data from the specified file.
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE_1);
 	const outputCapacity1 = ckbytesToShannons(61n) + ckbytesToShannons(dataSize1);
-	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(ALICE_ADDRESS), type: null}, data: hexString1};
+	const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: addressToScript(ALICE_ADDRESS), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
@@ -47,12 +48,12 @@ async function deployCode(indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ALICE_ADDRESS), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ALICE_ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -78,7 +79,7 @@ async function deployCode(indexer)
 	// Return the out point for the binary so it can be used in the next transaction.
 	const outPoint =
 	{
-		tx_hash: txid,
+		txHash: txid,
 		index: "0x0"
 	};
 
@@ -92,20 +93,20 @@ async function createCells(indexer, scriptCodeOutPoint)
 
 	// Add the cell deps.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Create a token cells.
 	???
 	
 	// Determine the capacity from all output Cells.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	
 	// Add input capacity cells.
 	???
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	???
@@ -138,7 +139,7 @@ async function transferCells(indexer, scriptCodeOutPoint)
 
 	// Add the cell deps.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Add Alice's token cells to the transaction.
@@ -155,13 +156,13 @@ async function transferCells(indexer, scriptCodeOutPoint)
 	???
 
 	// Determine the capacity for the output cells.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input capacity cells.
 	???
 
 	// Determine the capacity from input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	???
@@ -194,15 +195,15 @@ async function consumeCells(indexer, scriptCodeOutPoint)
 
 	// Add the cell deps.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Add Alice's token cells to the transaction.
 	???
 
 	// Determine the capacity of the input and output cells.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	???
@@ -231,7 +232,7 @@ async function consumeCells(indexer, scriptCodeOutPoint)
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

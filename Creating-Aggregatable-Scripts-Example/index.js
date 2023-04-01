@@ -1,18 +1,19 @@
 "use strict";
 
-const {utils} = require("@ckb-lumos/base");
+import fs from "fs";
+import {utils} from "@ckb-lumos/base";
 const {ckbHash} = utils;
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {Indexer} = require("@ckb-lumos/ckb-indexer");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU64LeHexBytes, u64LeHexBytesToInt} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const config = require("../config.json");
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, getLiveCell, indexerReady, readFileToHexString, readFileToHexStringSync, sendTransaction, signTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, hexToArrayBuffer, hexToInt, intToHex, intToU64LeHexBytes, u64LeHexBytesToInt} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 // CKB Node and CKB Indexer Node JSON RPC URLs.
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 
 // This is the private key and address which will be used.
 const PRIVATE_KEY_1 = "0x67842f5e4fa0edb34c9b4adbe8c3c1f3c737941f7c875d18bc6ec2f80554111d";
@@ -20,7 +21,7 @@ const ADDRESS_1 = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqvc3
 
 // This is the Aggregatable Counter RISC-V binary.
 const DATA_FILE_1 = "../files/aggcounter";
-const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)).serializeJson(); // Blake2b hash of the Aggregatable Counter binary.
+const DATA_FILE_HASH_1 = ckbHash(hexToArrayBuffer(readFileToHexStringSync(DATA_FILE_1).hexString)); // Blake2b hash of the Aggregatable Counter binary.
 
 // This is the TX fee amount that will be paid in Shannons.
 const TX_FEE = 100_000n;
@@ -36,7 +37,7 @@ async function deployCode(indexer)
 	// Create a cell with data from the specified file.
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE_1);
 	const outputCapacity1 = ckbytesToShannons(61n) + ckbytesToShannons(dataSize1);
-	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(ADDRESS_1), type: null}, data: hexString1};
+	const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: addressToScript(ADDRESS_1), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
@@ -44,12 +45,12 @@ async function deployCode(indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -75,7 +76,7 @@ async function deployCode(indexer)
 	// Return the out point for the Aggregatable Counter binary so it can be used in the next transaction.
 	const outPoint =
 	{
-		tx_hash: txid,
+		txHash: txid,
 		index: "0x0"
 	};
 
@@ -89,7 +90,7 @@ async function createCells(indexer, aggCounterCodeOutPoint)
 
 	// Add the cell deps for the default lock script and Aggregatable Counter type script.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: aggCounterCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: aggCounterCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Create cells using the Aggregatable Counter type script.
@@ -99,17 +100,17 @@ async function createCells(indexer, aggCounterCodeOutPoint)
 		const lockScript1 = addressToScript(ADDRESS_1);
 		const typeScript1 =
 		{
-			code_hash: DATA_FILE_HASH_1,
-			hash_type: "data",
+			codeHash: DATA_FILE_HASH_1,
+			hashType: "data1",
 			args: "0x"
 		};
 		const data1 = intToU64LeHexBytes(amount);
-		const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: data1};
+		const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: data1};
 		transaction = transaction.update("outputs", (i)=>i.push(output1));
 	}
 
 	// Determine the capacity from all output Cells.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	
 	// Add input capacity cells.
 	const capacityRequired = outputCapacity + ckbytesToShannons(61n) + TX_FEE;
@@ -117,11 +118,11 @@ async function createCells(indexer, aggCounterCodeOutPoint)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -147,9 +148,9 @@ async function createCells(indexer, aggCounterCodeOutPoint)
 	// Return the out point of the Aggregatable Counter cell so it can be used in the next transaction.
 	const outPoints =
 	[
-		{tx_hash: txid, index: "0x0"},
-		{tx_hash: txid, index: "0x1"},
-		{tx_hash: txid, index: "0x2"}
+		{txHash: txid, index: "0x0"},
+		{txHash: txid, index: "0x1"},
+		{txHash: txid, index: "0x2"}
 	];
 
 	return outPoints;
@@ -162,7 +163,7 @@ async function updateCells(indexer, aggCounterCodeOutPoint, counterCellOutPoints
 
 	// Add the cell deps for the default lock script and Aggregatable Counter type script.
 	transaction = addDefaultCellDeps(transaction);
-	const cellDep = {dep_type: "code", out_point: aggCounterCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: aggCounterCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Add the Aggregatable Counter cells to the transaction and keep track of their counter values.
@@ -181,18 +182,18 @@ async function updateCells(indexer, aggCounterCodeOutPoint, counterCellOutPoints
 		const lockScript1 = addressToScript(ADDRESS_1);
 		const typeScript1 =
 		{
-			code_hash: DATA_FILE_HASH_1,
-			hash_type: "data",
+			codeHash: DATA_FILE_HASH_1,
+			hashType: "data1",
 			args: "0x"
 		};
 		const dataValue1 = counterValue + 1n;
 		const data1 = intToU64LeHexBytes(dataValue1);
-		const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: data1};
+		const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: lockScript1, type: typeScript1}, data: data1};
 		transaction = transaction.update("outputs", (i)=>i.push(output1));
 	}
 
 	// Determine the capacity for the output cells.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input capacity cells.
 	const capacityRequired = outputCapacity + ckbytesToShannons(61n) + TX_FEE;
@@ -200,11 +201,11 @@ async function updateCells(indexer, aggCounterCodeOutPoint, counterCellOutPoints
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity from input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	const change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	const change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -231,7 +232,7 @@ async function updateCells(indexer, aggCounterCodeOutPoint, counterCellOutPoints
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);

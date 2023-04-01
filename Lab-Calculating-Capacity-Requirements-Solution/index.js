@@ -1,20 +1,21 @@
 "use strict";
 
-const {initializeConfig} = require("@ckb-lumos/config-manager");
-const {addressToScript, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {Indexer} = require("@ckb-lumos/ckb-indexer");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, getLiveCell, sendTransaction, signTransaction, waitForTransactionConfirmation} = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt, intToHex} = require("../lib/util.js");
-const {describeTransaction, initializeLab, validateLab} = require("./lab.js");
-const config = require("../config.json");
+import fs from "fs";
+import {initializeConfig} from "@ckb-lumos/config-manager";
+import {addressToScript, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {Indexer} from "@ckb-lumos/ckb-indexer";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, getLiveCell, sendTransaction, signTransaction, waitForTransactionConfirmation} from "../lib/index.js";
+import {ckbytesToShannons, hexToInt, intToHex} from "../lib/util.js";
+import {describeTransaction, initializeLab, validateLab} from "./lab.js";
+const CONFIG = JSON.parse(fs.readFileSync("../config.json"));
 
 const NODE_URL = "http://127.0.0.1:8114/";
-const INDEXER_URL = "http://127.0.0.1:8116/";
+const INDEXER_URL = "http://127.0.0.1:8114/";
 const PRIVATE_KEY = "0xd00c06bfd800d27397002dca6fb0993d5ba6399b4238b2f29ee9deb97593d2bc";
 const ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqwgx292hnvmn68xf779vmzrshpmm6epn4c0cgwga";
 const PREVIOUS_OUTPUT =
 {
-	tx_hash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+	txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
 	index: "0x0"
 };
 const TX_FEE = 10_000n;
@@ -22,7 +23,7 @@ const TX_FEE = 10_000n;
 async function main()
 {
 	// Initialize the Lumos configuration using ./config.json.
-	initializeConfig(config);
+	initializeConfig(CONFIG);
 
 	// Initialize an Indexer instance.
 	const indexer = new Indexer(INDEXER_URL, NODE_URL);
@@ -42,12 +43,12 @@ async function main()
 
 	// Create a cell with 1,000 CKBytes.
 	const outputCapacity1 = intToHex(ckbytesToShannons(1_000n));
-	const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
+	const output1 = {cellOutput: {capacity: outputCapacity1, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Create a change Cell for the remaining CKBytes.
-	const outputCapacity2 = intToHex(hexToInt(input.cell_output.capacity) - hexToInt(output1.cell_output.capacity) - TX_FEE);
-	const output2 = {cell_output: {capacity: outputCapacity2, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
+	const outputCapacity2 = intToHex(hexToInt(input.cellOutput.capacity) - hexToInt(output1.cellOutput.capacity) - TX_FEE);
+	const output2 = {cellOutput: {capacity: outputCapacity2, lock: addressToScript(ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(output2));
 
 	// Add in the witness placeholders.

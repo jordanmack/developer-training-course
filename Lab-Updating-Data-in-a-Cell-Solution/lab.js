@@ -1,14 +1,14 @@
 "use strict";
 
-const {addressToScript} = require("@ckb-lumos/helpers");
-const {locateCellDep, TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {CellCollector} = require("@ckb-lumos/ckb-indexer");
-const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultWitnessPlaceholders, collectCapacity, describeTransaction: libDescribeTransaction, getLiveCell, indexerReady, readFileToHexString, sendTransaction, signMessage, waitForConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
-const {ckbytesToShannons, formattedNumber, getRandomInt, hexToInt, intToHex} = require("../lib/util.js");
+import {addressToScript} from "@ckb-lumos/helpers";
+import {locateCellDep, TransactionSkeleton} from "@ckb-lumos/helpers";
+import {CellCollector} from "@ckb-lumos/ckb-indexer";
+import {secp256k1Blake160} from "@ckb-lumos/common-scripts";
+import {sealTransaction} from "@ckb-lumos/helpers";
+import {addDefaultWitnessPlaceholders, collectCapacity, describeTransaction as libDescribeTransaction, getLiveCell, indexerReady, readFileToHexString, sendTransaction, signMessage, waitForConfirmation, DEFAULT_LOCK_HASH} from "../lib/index.js";
+import {ckbytesToShannons, formattedNumber, getRandomInt, hexToInt, intToHex} from "../lib/util.js";
 
-function describeTransaction(transaction)
+export function describeTransaction(transaction)
 {
 	const options =
 	{
@@ -31,12 +31,12 @@ async function initializeLumosSkeleton(indexer)
 	let skeleton = TransactionSkeleton();
 
 	// Add the cell dep for the lock script.
-	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({code_hash: DEFAULT_LOCK_HASH, hash_type: "type"})));
+	skeleton = skeleton.update("cellDeps", (cellDeps)=>cellDeps.push(locateCellDep({codeHash: DEFAULT_LOCK_HASH, hashType: "type"})));
 
 	return skeleton;
 }
 
-async function initializeLab(NODE_URL, indexer)
+export async function initializeLab(NODE_URL, indexer)
 {
 	// Setup the Cells for the lab.
 	await setupCells(NODE_URL, indexer);
@@ -82,7 +82,7 @@ async function setupCells(NODE_URL, indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(recycleCells));
 
 	// Determine the capacity from recycled Cells.
-	const recycleCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const recycleCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create cells for the funding address.
 	let outputCapacityTotal = 0n;
@@ -90,7 +90,7 @@ async function setupCells(NODE_URL, indexer)
 	{
 		const outputCapacity = intToHex(ckbytesToShannons(getRandomInt(500, 1000)) + BigInt(getRandomInt(1, 10_000_000)));
 		// const outputCapacity = intToHex(ckbytesToShannons(61n));
-		const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(ADDRESS_2), type: null}, data: "0x"};
+		const output = {cellOutput: {capacity: outputCapacity, lock: addressToScript(ADDRESS_2), type: null}, data: "0x"};
 		transaction = transaction.update("outputs", (i)=>i.push(output));	
 		outputCapacityTotal += hexToInt(outputCapacity);
 	}
@@ -102,12 +102,12 @@ async function setupCells(NODE_URL, indexer)
 		const outputCapacity1 = intToHex(ckbytesToShannons(74n));
 		// const outputCapacity1 = intToHex(109700050000n);
 		// const outputCapacity1 = intToHex(ckbytesToShannons(getRandomInt(74, 2000)));
-		const output1 = {cell_output: {capacity: outputCapacity1, lock: addressToScript(ADDRESS_2), type: null}, data: hexString};
+		const output1 = {cellOutput: {capacity: outputCapacity1, lock: addressToScript(ADDRESS_2), type: null}, data: hexString};
 		transaction = transaction.update("outputs", (i)=>i.push(output1));
 	}
 
 	// Get the sum of the outputs.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input capacity cells to the transaction.
 	if(outputCapacity - recycleCapacity + ckbytesToShannons(61n) > 0) // Only add if there isn't enough recycled capacity.
@@ -118,11 +118,11 @@ async function setupCells(NODE_URL, indexer)
 	}
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(ADDRESS_1), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -168,7 +168,7 @@ async function setupCells(NODE_URL, indexer)
 	console.log("\n");
 }
 
-function signTransaction(transaction, PRIVATE_KEY)
+export function signTransaction(transaction, PRIVATE_KEY)
 {
 	// Add in the witness placeholders.
 	transaction = addDefaultWitnessPlaceholders(transaction);
@@ -176,7 +176,7 @@ function signTransaction(transaction, PRIVATE_KEY)
 	return lab.signTransaction(transaction, PRIVATE_KEY);
 }
 
-async function validateLab(skeleton)
+export async function validateLab(skeleton)
 {
 	const tx = skeleton.toJS();
 
@@ -191,7 +191,7 @@ async function validateLab(skeleton)
 
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE_1);
 
-	if(hexToInt(tx.outputs[0].cell_output.capacity) != ckbytesToShannons(dataSize1) + ckbytesToShannons(61n))
+	if(hexToInt(tx.outputs[0].cellOutput.capacity) != ckbytesToShannons(dataSize1) + ckbytesToShannons(61n))
 		throw new Error(`This lab requires output 0 to have a capacity of ${dataSize1} CKBytes.`)
 
 	if(tx.outputs[0].data !== hexString1)
@@ -199,14 +199,14 @@ async function validateLab(skeleton)
 
 	const {hexString: hexString2, dataSize: dataSize2} = await readFileToHexString(DATA_FILE_2);
 
-	if(hexToInt(tx.outputs[1].cell_output.capacity) != ckbytesToShannons(dataSize2) + ckbytesToShannons(61n))
+	if(hexToInt(tx.outputs[1].cellOutput.capacity) != ckbytesToShannons(dataSize2) + ckbytesToShannons(61n))
 		throw new Error(`This lab requires output 1 to have a capacity of ${dataSize2} CKBytes.`)
 
 	if(tx.outputs[1].data !== hexString2)
 		throw new Error("Output 1 must have data matching the content of LoremIpsum.txt.");
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
@@ -219,8 +219,7 @@ async function validateLab(skeleton)
 		throw new Error("This lab requires a TX Fee of exactly 0.001 CKBytes.");
 }
 
-module.exports =
-{
+export default {
 	describeTransaction,
 	getLiveCell,
 	initializeLab,

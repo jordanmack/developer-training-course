@@ -1,15 +1,15 @@
 "use strict";
 
-const {utils, values} = require("@ckb-lumos/base");
+import {utils, values} from "@ckb-lumos/base";
 const {computeScriptHash} = utils;
 const {ScriptValue} = values;
-const {addressToScript} = require("@ckb-lumos/helpers");
-const {TransactionSkeleton} = require("@ckb-lumos/helpers");
-const {CellCollector} = require("@ckb-lumos/ckb-indexer");
-const {secp256k1Blake160} = require("@ckb-lumos/common-scripts");
-const {sealTransaction} = require("@ckb-lumos/helpers");
-const {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, describeTransaction: libDescribeTransaction, getLiveCell, indexerReady, readFileToHexString, sendTransaction, signMessage, signTransaction, waitForConfirmation, DEFAULT_LOCK_HASH} = require("../lib/index.js");
-const {ckbytesToShannons, hexToInt, intToHex, intToU128LeHexBytes, u128LeHexBytesToInt} = require("../lib/util.js");
+import {addressToScript} from "@ckb-lumos/helpers";
+import {TransactionSkeleton} from "@ckb-lumos/helpers";
+import {CellCollector} from "@ckb-lumos/ckb-indexer";
+import {secp256k1Blake160} from "@ckb-lumos/common-scripts";
+import {sealTransaction} from "@ckb-lumos/helpers";
+import {addDefaultCellDeps, addDefaultWitnessPlaceholders, collectCapacity, describeTransaction as libDescribeTransaction, getLiveCell, indexerReady, readFileToHexString, sendTransaction, signMessage, signTransaction, waitForConfirmation, DEFAULT_LOCK_HASH} from "../lib/index.js";
+import {ckbytesToShannons, hexToInt, intToHex, intToU128LeHexBytes, u128LeHexBytesToInt} from "../lib/util.js";
 
 // These are the private keys and accounts to use with this lab.
 const ALICE_PRIVATE_KEY = "0x81dabf8f74553c07999e1400a8ecc4abc44ef81c9466e6037bd36e4ad1631c17";
@@ -28,7 +28,7 @@ const GENESIS_ADDRESS = "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x
 // This is the SUDT RISC-V binary.
 const DATA_FILE = "../files/sudt";
 
-function describeTransaction(transaction)
+export function describeTransaction(transaction)
 {
 	const options =
 	{
@@ -45,7 +45,7 @@ function describeTransaction(transaction)
 	return libDescribeTransaction(transaction, options);
 }
 
-async function initializeLab(NODE_URL, indexer)
+export async function initializeLab(NODE_URL, indexer)
 {
 	// Setup the Cells for the lab.
 	await setupCells(NODE_URL, indexer);
@@ -65,7 +65,7 @@ async function deployCode(NODE_URL, indexer)
 	// Create a cell with data from the specified file.
 	const {hexString: hexString1, dataSize: dataSize1} = await readFileToHexString(DATA_FILE);
 	const outputCapacity1 = ckbytesToShannons(61n) + ckbytesToShannons(dataSize1);
-	const output1 = {cell_output: {capacity: intToHex(outputCapacity1), lock: addressToScript(ALICE_ADDRESS), type: null}, data: hexString1};
+	const output1 = {cellOutput: {capacity: intToHex(outputCapacity1), lock: addressToScript(ALICE_ADDRESS), type: null}, data: hexString1};
 	transaction = transaction.update("outputs", (i)=>i.push(output1));
 
 	// Add input capacity cells.
@@ -73,12 +73,12 @@ async function deployCode(NODE_URL, indexer)
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(GENESIS_ADDRESS), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(GENESIS_ADDRESS), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -103,7 +103,7 @@ async function deployCode(NODE_URL, indexer)
 	// Return the out point for the binary so it can be used in the next transaction.
 	const outPoint =
 	{
-		tx_hash: txid,
+		txHash: txid,
 		index: "0x0"
 	};
 
@@ -135,7 +135,7 @@ async function setupCells(NODE_URL, indexer)
 
 	// Initialize a Lumos instance.
 	let transaction = TransactionSkeleton();
-	const cellDep = {dep_type: "code", out_point: scriptCodeOutPoint};
+	const cellDep = {depType: "code", outPoint: scriptCodeOutPoint};
 	transaction = transaction.update("cellDeps", (cellDeps)=>cellDeps.push(cellDep));
 
 	// Add the cell dep for the lock script.
@@ -159,7 +159,7 @@ async function setupCells(NODE_URL, indexer)
 		transaction = transaction.update("inputs", (i)=>i.concat(recycleCells));
 
 		// Determine the capacity from recycled Cells.
-		const recycledCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+		const recycledCapacity = recycleCells.reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 		totalRecycledCapacity += recycledCapacity;
 	}
 
@@ -169,13 +169,13 @@ async function setupCells(NODE_URL, indexer)
 		for(let i = 0; i < numberOfFundCells; i++)
 		{
 			const outputCapacity = intToHex(amountToFund);
-			const output = {cell_output: {capacity: outputCapacity, lock: addressToScript(account.address), type: null}, data: "0x"};
+			const output = {cellOutput: {capacity: outputCapacity, lock: addressToScript(account.address), type: null}, data: "0x"};
 			transaction = transaction.update("outputs", (i)=>i.push(output));
 		}
 	}
 
 	// Get the sum of the outputs.
-	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Add input capacity cells to the transaction.
 	if(outputCapacity - totalRecycledCapacity + ckbytesToShannons(61n) > 0) // Only add if there isn't enough recycled capacity.
@@ -186,11 +186,11 @@ async function setupCells(NODE_URL, indexer)
 	}
 
 	// Determine the capacity of all input cells.
-	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
 	// Create a change Cell for the remaining CKBytes.
 	const changeCapacity = intToHex(inputCapacity - outputCapacity - TX_FEE);
-	let change = {cell_output: {capacity: changeCapacity, lock: addressToScript(fundingAccountAddress), type: null}, data: "0x"};
+	let change = {cellOutput: {capacity: changeCapacity, lock: addressToScript(fundingAccountAddress), type: null}, data: "0x"};
 	transaction = transaction.update("outputs", (i)=>i.push(change));
 
 	// Add in the witness placeholders.
@@ -237,7 +237,7 @@ async function setupCells(NODE_URL, indexer)
 	console.log("\n");
 }
 
-async function validateLab(skeleton, action)
+export async function validateLab(skeleton, action)
 {
 	if(action == "deploy")
 		return;
@@ -264,14 +264,14 @@ async function validateLabCreate(skeleton)
 	// Alice's cells.
 	for(let i = 0; i < 3; i++)
 	{
-		if(new ScriptValue(tx.outputs[i].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+		if(new ScriptValue(tx.outputs[i].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 			throw new Error(`This lab requires output ${i} to use the default lock script for Alice's address.`);
 
-		if(!tx.outputs[i].cell_output.type || tx.outputs[i].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+		if(!tx.outputs[i].cellOutput.type || tx.outputs[i].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 			throw new Error(`This lab requires output ${i} to use the SUDT type script with Alice's lock hash as the args.`);
 
 		const capacity = 142n;
-		if(BigInt(tx.outputs[i].cell_output.capacity) !== ckbytesToShannons(capacity))
+		if(BigInt(tx.outputs[i].cellOutput.capacity) !== ckbytesToShannons(capacity))
 			throw new Error(`This lab requires output ${i} to have a capacity of ${capacity} CKBytes.`);
 
 		const data = ["0x64000000000000000000000000000000", "0x2c010000000000000000000000000000", "0xbc020000000000000000000000000000"];
@@ -280,25 +280,25 @@ async function validateLabCreate(skeleton)
 	}
 
 	// Daniel's cell.
-	if(new ScriptValue(tx.outputs[3].cell_output.lock).hash() !== "0x6ee8b1ea3db94183c5e5a47fbe82110101f6f8d3e18d1ecd4d6a5425e648da69")
+	if(new ScriptValue(tx.outputs[3].cellOutput.lock).hash() !== "0x6ee8b1ea3db94183c5e5a47fbe82110101f6f8d3e18d1ecd4d6a5425e648da69")
 		throw new Error(`This lab requires output 3 to use the default lock script for Daniel's address.`);
-	if(!tx.outputs[3].cell_output.type || tx.outputs[3].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+	if(!tx.outputs[3].cellOutput.type || tx.outputs[3].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 		throw new Error(`This lab requires output 3 to use the SUDT type script with Alice's lock hash as the args.`);
-	if(BigInt(tx.outputs[3].cell_output.capacity) !== ckbytesToShannons(142n))
+	if(BigInt(tx.outputs[3].cellOutput.capacity) !== ckbytesToShannons(142n))
 		throw new Error(`This lab requires output 3 to have a capacity of ${142n} CKBytes.`);
 	if(tx.outputs[3].data !== "0x84030000000000000000000000000000")
 		throw new Error(`This lab requires output 3 to have a data value of "0x84030000000000000000000000000000".`);
 
 	// Alice's change cell.
-	if(new ScriptValue(tx.outputs[4].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+	if(new ScriptValue(tx.outputs[4].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 		throw new Error(`This lab requires output 4 to use the default lock script for Alice's address.`);
-	if(!!tx.outputs[4].cell_output.type)
+	if(!!tx.outputs[4].cellOutput.type)
 		throw new Error(`This lab requires output 4 to have no type script.`);
 	if(tx.outputs[4].data !== "0x")
 		throw new Error(`This lab requires output 4 to have a data value of "0x".`);
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
@@ -321,14 +321,14 @@ async function validateLabTransfer(skeleton)
 	// Check all input cells, except for the last one. Ensure they match lock hash, type script args, and capacity.
 	for(let i = 0; i < tx.inputs.length-1; i++)
 	{
-		if(new ScriptValue(tx.inputs[i].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+		if(new ScriptValue(tx.inputs[i].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 			throw new Error(`This lab requires input ${i} to use the default lock script with Alice's address.`);
 
-		if(!tx.inputs[i].cell_output.type || tx.inputs[i].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+		if(!tx.inputs[i].cellOutput.type || tx.inputs[i].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 			throw new Error(`This lab requires input ${i} to use the SUDT type script with Alice's lock hash as the args.`);
 
 		const capacity = 142n;
-		if(BigInt(tx.inputs[i].cell_output.capacity) !== ckbytesToShannons(capacity))
+		if(BigInt(tx.inputs[i].cellOutput.capacity) !== ckbytesToShannons(capacity))
 			throw new Error(`This lab requires input ${i} to have a capacity of ${capacity} CKBytes.`);	
 	}
 
@@ -354,10 +354,10 @@ async function validateLabTransfer(skeleton)
 	// Check the final input capacity cell.
 	for(let i = tx.inputs.length-1; i < tx.inputs.length; i++)
 	{
-		if(new ScriptValue(tx.inputs[i].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+		if(new ScriptValue(tx.inputs[i].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 			throw new Error(`This lab requires input ${i} to use the default lock script with Alice's address.`);
 
-		if(!!tx.inputs[i].cell_output.type)
+		if(!!tx.inputs[i].cellOutput.type)
 			throw new Error(`This lab requires output ${i} to have no type script.`);
 	
 		if(tx.inputs[i].data !== "0x")
@@ -368,10 +368,10 @@ async function validateLabTransfer(skeleton)
 	for(let i = 0; i < 2; i++)
 	{
 		const lockScripts = [["0x04b95a2e4757a7870aa7620b000a602c2db5a9daf64c471bcba17fa395859f96", "Bob"], ["0x3ea732766e85cc6135630373ebbabcb4b79fea7e1473385f8682c51d78b97b48", "Charlie"]];
-		if(new ScriptValue(tx.outputs[i].cell_output.lock).hash() !== lockScripts[i][0])
+		if(new ScriptValue(tx.outputs[i].cellOutput.lock).hash() !== lockScripts[i][0])
 			throw new Error(`This lab requires output ${i} to use the default lock script with ${lockScripts[i][1]}'s address.`);
 
-		if(!tx.outputs[i].cell_output.type || tx.outputs[i].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+		if(!tx.outputs[i].cellOutput.type || tx.outputs[i].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 			throw new Error(`This lab requires output ${i} to use the SUDT type script with Alice's lock hash as the args.`);
 
 		const data = ["0xc8000000000000000000000000000000", "0xf4010000000000000000000000000000"];
@@ -380,26 +380,26 @@ async function validateLabTransfer(skeleton)
 	}
 
 	// Alice's token change cell.
-	const inputTokens = tx.inputs.reduce((a, c)=>a+((!!c.cell_output.type&&!!c.data)?u128LeHexBytesToInt(c.data):0n), 0n);
-	const outputTokens = tx.outputs.slice(0, 2).reduce((a, c)=>a+((!!c.cell_output.type&&!!c.data)?u128LeHexBytesToInt(c.data):0n), 0n);
+	const inputTokens = tx.inputs.reduce((a, c)=>a+((!!c.cellOutput.type&&!!c.data)?u128LeHexBytesToInt(c.data):0n), 0n);
+	const outputTokens = tx.outputs.slice(0, 2).reduce((a, c)=>a+((!!c.cellOutput.type&&!!c.data)?u128LeHexBytesToInt(c.data):0n), 0n);
 	const changeTokens = inputTokens - outputTokens;
-	if(new ScriptValue(tx.outputs[2].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+	if(new ScriptValue(tx.outputs[2].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 		throw new Error(`This lab requires output 2 to use the default lock script for Alice's address.`);
-	if(!tx.outputs[2].cell_output.type || tx.outputs[2].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+	if(!tx.outputs[2].cellOutput.type || tx.outputs[2].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 		throw new Error(`This lab requires output 2 to use the SUDT type script with Alice's lock hash as the args.`);
 	if(tx.outputs[2].data !== intToU128LeHexBytes(changeTokens))
 		throw new Error(`This lab requires output 2 to have a data value of "${intToU128LeHexBytes(changeTokens)}".`);
 
 	// Alice's change cell.
-	if(new ScriptValue(tx.outputs[3].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+	if(new ScriptValue(tx.outputs[3].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 		throw new Error(`This lab requires output 3 to use the default lock script for Alice's address.`);
-	if(!!tx.outputs[3].cell_output.type)
+	if(!!tx.outputs[3].cellOutput.type)
 		throw new Error(`This lab requires output 3 to have no type script.`);
 	if(tx.outputs[3].data !== "0x")
 		throw new Error(`This lab requires output 3 to have a data value of "0x".`);
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
@@ -422,27 +422,27 @@ async function validateLabConsume(skeleton)
 	// Check all input cells. Ensure they match lock hash and capacity.
 	for(let i = 0; i < tx.inputs.length-1; i++)
 	{
-		if(new ScriptValue(tx.inputs[i].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+		if(new ScriptValue(tx.inputs[i].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 			throw new Error(`This lab requires input ${i} to use the default lock script with Alice's address.`);
 
-		if(!tx.inputs[i].cell_output.type || tx.inputs[i].cell_output.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
+		if(!tx.inputs[i].cellOutput.type || tx.inputs[i].cellOutput.type.args != computeScriptHash(addressToScript(ALICE_ADDRESS)))
 			throw new Error(`This lab requires input ${i} to use the SUDT type script with Alice's lock hash as the args.`);
 
 		const capacity = 142n;
-		if(BigInt(tx.inputs[i].cell_output.capacity) !== ckbytesToShannons(capacity))
+		if(BigInt(tx.inputs[i].cellOutput.capacity) !== ckbytesToShannons(capacity))
 			throw new Error(`This lab requires input ${i} to have a capacity of ${capacity} CKBytes.`);	
 	}
 
 	// Alice's change cell.
-	if(new ScriptValue(tx.outputs[0].cell_output.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
+	if(new ScriptValue(tx.outputs[0].cellOutput.lock).hash() !== "0xbc60079e66ea8597a653f1bacdabf33d91a8aebb3e083ab35d59b4e54465aae1")
 		throw new Error(`This lab requires output 0 to use the default lock script for Alice's address.`);
-	if(tx.outputs[0].cell_output.type !== null)
+	if(tx.outputs[0].cellOutput.type !== null)
 		throw new Error(`This lab requires output 0 to have no type script.`)
 	if(tx.outputs[0].data !== "0x")
 		throw new Error(`This lab requires output 0 to have a data value of "0x".`);
 
-	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
-	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cell_output.capacity), 0n);
+	const inputCapacity = skeleton.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
+	const outputCapacity = skeleton.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const TX_FEE = inputCapacity - outputCapacity;
 
 	if(outputCapacity > inputCapacity)
@@ -452,8 +452,7 @@ async function validateLabConsume(skeleton)
 		throw new Error(`The TX Fee provided is too large: ${formattedNumber(TX_FEE)} Shannons.`);
 }
 
-module.exports =
-{
+export default {
 	describeTransaction,
 	getLiveCell,
 	initializeLab,

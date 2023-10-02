@@ -72,7 +72,7 @@ async function deployCode(NODE_URL, indexer)
 	const collectedCells = await collectCapacity(indexer, addressToScript(GENESIS_ADDRESS), outputCapacity1 + ckbytesToShannons(61n) + TX_FEE);
 	transaction = transaction.update("inputs", (i)=>i.concat(collectedCells.inputCells));
 
-	// Determine the capacity of all input cells.
+	// Determine the capacity of all input cells and output cells.
 	const inputCapacity = transaction.inputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 	const outputCapacity = transaction.outputs.toArray().reduce((a, c)=>a+hexToInt(c.cellOutput.capacity), 0n);
 
